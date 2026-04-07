@@ -298,7 +298,7 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
       <div class="hero-meta-item"><span class="val" style="color:var(--acc)" id="kpiPhase">2</span><span class="lbl">Phase actuelle</span></div>
       <div class="hero-meta-item"><span class="val" style="color:var(--t3)" id="kpiPlanned">0</span><span class="lbl">Prototypés</span></div>
     </div>
-    <div class="hcta"><a href="#feedback">Retours →</a></div>
+    <div class="hcta"><a href="#roadmap">Roadmap →</a><a href="#feedback">Retours →</a></div>
   </div></div>
   <div class="sh"><span>Scroll</span><div class="shl"></div></div>
 </section>
@@ -320,9 +320,10 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
 
     <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
       <div class="si" style="color:var(--amb);background:var(--ambdim);border-color:rgba(255,184,77,.15)">Phase actuelle</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Vision verrouillée, intégration Meta validée — direction design</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le brief complet du Module 1 (Gestion & Distribution de Leads) est finalisé. L'intégration Meta a été recherchée et verrouillée : les leads arrivent en temps réel via webhooks, et un système de feedback automatique (CAPI) renvoie la qualité des leads vers l'algorithme Meta — ce qui améliore le ciblage publicitaire au fil du temps. L'architecture technique est décidée, chaque décision a une logique claire.</p>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75">Prochaine étape : le design du shell — la fondation visuelle de l'application. Navigation, structure de page, tokens de design, responsive mobile-first. C'est sur cette base que chaque feature du Module 1 sera construite.</p>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Design en cours — première version du shell et premières pages</h3>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le produit s'appelle désormais <strong style="color:var(--t1)">LeadFlow</strong>. La direction artistique est posée : esthétique premium, douce, arrondie, inspirée des meilleurs SaaS enterprise. Une première version du shell est en place — navigation, routing entre pages, rail latéral rétractable, système de design tokens (couleurs, typographie, ombres, espacements).</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Deux pages sont en cours d'exploration : la page Leads (tableau de leads avec KPIs, pipeline de statuts, badges sources, scores, indicateurs de priorité) et le Tableau de bord avec une carte interactive de Paris — 20 arrondissements en SVG avec les frontières géographiques exactes, heatmap de densité de leads, animation 3D au survol, et panneau de détail au clic avec liste de leads et assignation par agent.</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75">Le design du shell n'est pas finalisé — les cards, la cohérence typographique entre pages, les composants réutilisables et le responsive restent à travailler. C'est la prochaine étape avant de passer aux briefs détaillés par feature.</p>
     </div>
 
     <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
@@ -439,14 +440,14 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <p class="slb">Roadmap</p>
     <h2 class="st">Le chemin vers le <em>produit.</em></h2>
   </div>
-  <div class="pipeline fly-steps" style="--pipe-fill:0.25">
+  <div class="pipeline fly-steps" style="--pipe-fill:0.29">
     <div class="pipe-line"></div><div class="pipe-line-fill"></div>
     <div class="pipe-steps">
       <div class="pipe-step done"><div class="pipe-dot">100%</div><h3>Vision produit</h3><p>Brief Module 1 complet. Intégration Meta validée, architecture CAPI verrouillée.</p></div>
       <div class="pipe-step done"><div class="pipe-dot">100%</div><h3>Sélection stack</h3><p>Stack verrouillée. Next.js, Supabase, Hetzner VPS. Choix rationnels, zéro impasse.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Design shell</h3><p>Fondation visuelle — navigation, layout, tokens, responsive mobile-first.</p></div>
+      <div class="pipe-step active"><div class="pipe-dot">30%</div><h3>Design shell</h3><p>Première version : nav, routing, rail, tokens. Cards, typo, composants et responsive en cours.</p></div>
       <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Briefs modules</h3><p>Brief général + détaillé par feature. Spécifications techniques et fonctionnelles.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Prototype React</h3><p>Prototype interactif complet — chaque feature designée et testable.</p></div>
+      <div class="pipe-step active"><div class="pipe-dot">5%</div><h3>Prototype React</h3><p>Premiers écrans : page Leads et Tableau de bord avec carte Paris interactive.</p></div>
       <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Package</h3><p>Zip final avec contexte, briefs par module, dépendances. Prêt pour le développement.</p></div>
       <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Développement</h3><p>Implémentation serveur — Supabase, API, intégration Meta, données réelles.</p></div>
       <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Lancement</h3><p>En production avec de vraies agences. Retours terrain, itérations, adoption.</p></div>
@@ -456,8 +457,8 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
       <span style="font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--adim);border:1px solid rgba(0,255,170,.15);padding:5px 14px;letter-spacing:1.5px;text-transform:uppercase">Prochaine livraison</span>
     </div>
-    <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Design du shell — fondation visuelle de l'application</h3>
-    <p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:560px">Le shell React est le prochain chantier. Navigation, structure, design tokens, responsive mobile-first. C'est la base sur laquelle chaque feature du Module 1 sera construite. Première version consultable ici dès qu'elle est prête.</p>
+    <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Finalisation du shell — cards, typographie, composants, responsive</h3>
+    <p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:560px">La structure de base est en place. Le prochain chantier : harmoniser les cards et composants entre les pages, verrouiller la hiérarchie typographique, définir les patterns réutilisables et poser le responsive mobile-first. Le shell finalisé devient la fondation de chaque feature.</p>
   </div>
 </div></section>
 
@@ -488,8 +489,45 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <div class="cl-entry">
       <div class="cl-date">Semaine 7 — 13 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Intégration Meta — spec complète verrouillée</h4>
-        <p>Pipeline bidirectionnel validé : les leads arrivent en temps réel via webhooks (Lead Ads API), et la qualification des agents remonte vers Meta via CAPI (Conversions API). Trois événements mappés : Contact, Lead, Purchase. Architecture de mapping des champs définie — chaque formulaire Meta utilise des noms de champs différents, une couche de normalisation par agence/formulaire est prévue. Import historique 90 jours inclus. Spécification complète documentée.</p>
+        <h4><span class="cl-tag new">New</span>LeadFlow — shell v1 + premières pages + carte Paris</h4>
+        <p>Le produit est renommé LeadFlow. Direction artistique posée : esthétique premium SaaS, douce et arrondie. Première version du shell : top nav avec branding LeadFlow, routing entre 5 pages, rail latéral rétractable avec actions contextuelles, toggles de thème. Design system documenté — tokens couleurs, typographie Inter, ombres, rayons 26px, espacements.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>Page Leads — tableau, KPIs, pipeline, badges</h4>
+        <p>Page Leads fonctionnelle : 4 cartes KPI avec indicateurs de variation, barre de pipeline à 7 statuts (Nouveau → Perdu), tableau de leads avec onglets de filtre, lignes de leads avec avatars 46px, badges source Instagram/Facebook, indicateurs vérifié/prioritaire, anneaux de score, points de statut colorés, agent assigné. Sidebar droite avec aperçu équipe (taux de conversion par agent) et répartition des sources en double donut (Meta vs Manuel).</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>Tableau de bord — carte Paris interactive</h4>
+        <p>Carte interactive des 20 arrondissements de Paris en SVG — frontières géographiques exactes extraites et intégrées manuellement. Heatmap de densité de leads (gris → orange → rouge), effet 3D au survol (translation + ombre portée, couleur heatmap préservée), panneau de détail au clic (320px) avec liste de leads du quartier, compteur de non-assignés et boutons d'assignation par agent. Seine rendue en espace blanc négatif. KPIs mensuels, graphique hebdomadaire, répartition des statuts, section derniers leads.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>Documentation produit formalisée</h4>
+        <p>Package structuré avec documentation complète : design system (tokens, typo, composants), modèle de données (entités, relations, données mock), architecture des composants (arbre, props, état), notes d'implémentation de la carte Paris, et roadmap technique. Base solide pour la suite du développement.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- OLDER — hidden by default -->
+  <div class="changelog" id="clOlder" style="display:none">
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag update">Update</span>Intégration Meta — spec complète verrouillée</h4>
+        <p>Pipeline bidirectionnel validé : leads en temps réel via webhooks (Lead Ads API), qualification remontée vers Meta via CAPI (Conversions API). Trois événements mappés : Contact, Lead, Purchase. Couche de normalisation des champs par agence/formulaire définie. Import historique 90 jours inclus.</p>
       </div>
     </div>
 
@@ -497,7 +535,7 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
       <div class="cl-date">Semaine 7 — 13 avr</div>
       <div class="cl-content">
         <h4><span class="cl-tag update">Update</span>Stack — migration Vercel → Hetzner VPS</h4>
-        <p>Déploiement changé de Vercel (free tier) vers Hetzner VPS (CPX21+). Le serveur dédié est essentiel pour recevoir les webhooks Meta en continu — pas de cold starts, pas de timeouts pendant les pics de campagnes. Coût mis à jour : ~8 €/mois au lancement.</p>
+        <p>Déploiement sur serveur dédié Hetzner VPS (CPX21+). Essentiel pour les webhooks Meta en continu — pas de cold starts, pas de timeouts. Coût mis à jour : ~8 €/mois au lancement.</p>
       </div>
     </div>
 
@@ -510,6 +548,13 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     </div>
 
   </div>
+
+  <!-- MORE BUTTON -->
+  <div class="more-indicator rv" id="clMoreBtn" onclick="toggleOlderChangelog()">
+    <span id="clMoreTxt">More</span>
+    <div class="shl" id="clMoreLine"></div>
+  </div>
+
 </div></section>
 
 <!-- FOOTER -->
@@ -646,6 +691,24 @@ renderModules();
 /* Feedback form, feed, CSV loading, and submit functions are disabled
    until the first shell design is delivered. All code will be restored
    when the Google Sheet is connected. */
+
+/* ═══ CHANGELOG MORE/LESS ═══ */
+var clExpanded = false;
+function toggleOlderChangelog() {
+  var older = document.getElementById('clOlder');
+  var txt = document.getElementById('clMoreTxt');
+  var line = document.getElementById('clMoreLine');
+  clExpanded = !clExpanded;
+  if (clExpanded) {
+    older.style.display = '';
+    txt.textContent = 'Less';
+    line.style.transform = 'rotate(180deg)';
+  } else {
+    older.style.display = 'none';
+    txt.textContent = 'More';
+    line.style.transform = '';
+  }
+}
 
 /* ═══ LOGIN GATE ═══ */
 var PW='leadsreport';
