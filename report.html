@@ -291,12 +291,12 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
   <div class="C"><div class="hc">
     <div class="hero-ghost" id="hGhost">studio AI2K</div>
     <p class="he">Rapport d'avancement — Avril 2026</p>
-    <h2 class="hero-headline">Open House<br>Lead Dashboard — suivi <em>projet.</em></h2>
-    <p class="hs">Outil de gestion et distribution de leads pour les agences immobilières partenaires d'Open House. Couche opérationnelle entre Meta et les équipes commerciales — centralisation, attribution, qualification, suivi.</p>
+    <h2 class="hero-headline">Open House<br>LeadFlow — suivi <em>projet.</em></h2>
+    <p class="hs">Outil de gestion et distribution de leads immobiliers — module Acquéreurs et module Vendeurs. Couche opérationnelle entre Meta et les équipes commerciales — centralisation, attribution, qualification, actions immédiates.</p>
     <div class="hero-meta">
-      <div class="hero-meta-item"><span class="val" id="kpiFeatures">12</span><span class="lbl">Features Module 1</span></div>
+      <div class="hero-meta-item"><span class="val" id="kpiFeatures">2</span><span class="lbl">Modules</span></div>
       <div class="hero-meta-item"><span class="val" style="color:var(--acc)" id="kpiPhase">2</span><span class="lbl">Phase actuelle</span></div>
-      <div class="hero-meta-item"><span class="val" style="color:var(--t3)" id="kpiPlanned">0</span><span class="lbl">Prototypés</span></div>
+      <div class="hero-meta-item"><span class="val" style="color:var(--t3)" id="kpiPlanned">HTML</span><span class="lbl">Stack frontend</span></div>
     </div>
     <div class="hcta"><a href="#roadmap">Roadmap →</a><a href="#feedback">Retours →</a></div>
   </div></div>
@@ -315,29 +315,29 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
       <div class="si">Origines</div>
       <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Des leads bien générés, mal exploités</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75">Open House génère des leads qualifiés pour ses agences immobilières partenaires via des campagnes Meta (Instagram, Facebook). Aujourd'hui, ces leads arrivent dans le Meta Lead Center — mais leur distribution aux agents est manuelle : export, envoi par WhatsApp ou email, suivi sur tableur. Les leads sont contactés trop tard, parfois oubliés, et le retour sur la qualité reste informel. Le dashboard résout ce problème en créant une couche opérationnelle entre Meta et les équipes terrain — récupération automatique, attribution claire, qualification structurée, feedback centralisé.</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75">Open House génère des leads qualifiés pour ses agences immobilières partenaires via des campagnes Meta (Instagram, Facebook). Aujourd'hui, ces leads arrivent dans le Meta Lead Center — mais leur distribution aux agents est manuelle : export, envoi par WhatsApp ou email, suivi sur tableur. Les leads sont contactés trop tard, parfois oubliés, et le retour sur la qualité reste informel. LeadFlow résout ce problème en créant une couche opérationnelle entre Meta et les équipes terrain — récupération automatique, attribution claire, qualification structurée, actions immédiates.</p>
     </div>
 
     <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
       <div class="si" style="color:var(--amb);background:var(--ambdim);border-color:rgba(255,184,77,.15)">Phase actuelle</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Design en cours — première version du shell et premières pages</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le produit s'appelle désormais <strong style="color:var(--t1)">LeadFlow</strong>. La direction artistique est posée : esthétique premium, douce, arrondie, inspirée des meilleurs SaaS enterprise. Une première version du shell est en place — navigation, routing entre pages, rail latéral rétractable, système de design tokens (couleurs, typographie, ombres, espacements).</p>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Deux pages sont en cours d'exploration : la page Leads (tableau de leads avec KPIs, pipeline de statuts, badges sources, scores, indicateurs de priorité) et le Tableau de bord avec une carte interactive de Paris — 20 arrondissements en SVG avec les frontières géographiques exactes, heatmap de densité de leads, animation 3D au survol, et panneau de détail au clic avec liste de leads et assignation par agent.</p>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75">Le design du shell n'est pas finalisé — les cards, la cohérence typographique entre pages, les composants réutilisables et le responsive restent à travailler. C'est la prochaine étape avant de passer aux briefs détaillés par feature.</p>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Design HTML — le produit prend forme</h3>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le brief produit a été élargi suite à des échanges avec l'équipe Open House — notamment un walkthrough du Centre de Prospects Meta et une review du workflow actuel des agences. Résultat : LeadFlow couvre désormais deux modules — <strong style="color:var(--t1)">Acquéreurs</strong> (acheteurs) et <strong style="color:var(--t1)">Vendeurs</strong> (propriétaires). Chaque module a ses propres champs de formulaire, son pipeline personnalisable, et sa logique de scoring.</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le prototype a été entièrement reconstruit : nouveau design (DM Sans + JetBrains Mono), panneau de détail lead avec édition inline (statut, agent, notes), page Agents complète, pipeline à 7 statuts. L'approche technique a aussi évolué — le frontend est développé en HTML pur avec Google Sheets pour les données mock. Pas de framework, pas de complexité inutile.</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75">Stratégie claire : HTML pour les 10 premiers clients, validation terrain, puis rebuild en React si le produit et la base client le justifient.</p>
     </div>
 
     <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
       <div class="si" style="color:var(--t2);background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)">Infrastructure cible</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Multi-agence dès le départ, SaaS ensuite</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le dashboard est conçu dès le départ pour gérer plusieurs agences simultanément. Chaque agence dispose de son propre espace — leads isolés, agents dédiés, données séparées. Open House supervise l'ensemble depuis une vue super admin. Le serveur dédié (Hetzner VPS) garantit une réception des leads en temps réel, sans interruption — essentiel pour ne perdre aucun prospect. En interne d'abord, intégré aux offres Open House existantes. Puis, à terme, un produit SaaS autonome.</p>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">HTML → Supabase → Hetzner — simple et efficace</h3>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le dashboard est conçu pour gérer plusieurs agences simultanément. Chaque agence dispose de son propre espace — leads isolés, agents dédiés, données séparées. Open House supervise l'ensemble depuis une vue super admin. L'intégration Meta fait le lien entre les campagnes et le dashboard. En interne d'abord, intégré aux offres Open House. Puis, à terme, un produit SaaS autonome.</p>
 
       <div style="font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">Stack technique</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Frontend</span><span style="font-size:12px;color:var(--t3)">Next.js 14+, Tailwind CSS, shadcn/ui, Framer Motion</span></div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Frontend</span><span style="font-size:12px;color:var(--t3)">HTML / CSS / JS — pas de framework</span></div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Données mock</span><span style="font-size:12px;color:var(--t3)">Google Sheets (phase design)</span></div>
         <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Base de données</span><span style="font-size:12px;color:var(--t3)">Supabase (PostgreSQL) — RLS multi-tenant</span></div>
         <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Auth</span><span style="font-size:12px;color:var(--t3)">Supabase Auth — email/mot de passe, rôles</span></div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Notifications</span><span style="font-size:12px;color:var(--t3)">Supabase Realtime + Resend (email)</span></div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Serveur</span><span style="font-size:12px;color:var(--t3)">Hetzner VPS — serveur dédié, Nginx, SSL</span></div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Serveur</span><span style="font-size:12px;color:var(--t3)">Hetzner VPS — serveur dédié, webhooks Meta</span></div>
         <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Coût estimé</span><span style="font-size:12px;color:var(--t3)">~8 €/mois au lancement</span></div>
       </div>
     </div>
@@ -353,47 +353,30 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
           <marker id="af1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#00ffaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
           <marker id="af2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#ffb84d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
         </defs>
-
-        <!-- Row 1: Meta Ads -->
         <rect x="200" y="16" width="280" height="48" rx="8" fill="rgba(30,58,95,.6)" stroke="#3b82f6" stroke-width="0.5"/>
         <text x="340" y="36" text-anchor="middle" fill="#93c5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Campagnes Meta</text>
         <text x="340" y="52" text-anchor="middle" fill="#6b9bd2" font-size="11" font-family="Outfit,sans-serif">Instagram / Facebook ads</text>
-
         <line x1="340" y1="64" x2="340" y2="88" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
-
-        <!-- Row 2: Meta Lead Center -->
         <rect x="190" y="88" width="300" height="48" rx="8" fill="rgba(30,58,95,.6)" stroke="#3b82f6" stroke-width="0.5"/>
         <text x="340" y="108" text-anchor="middle" fill="#93c5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Meta Lead Center</text>
         <text x="340" y="124" text-anchor="middle" fill="#6b9bd2" font-size="11" font-family="Outfit,sans-serif">Source de vérité — leads stockés</text>
-
         <line x1="340" y1="136" x2="340" y2="160" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
         <text x="355" y="154" fill="#454d60" font-size="10" font-family="Azeret Mono,monospace">API</text>
-
-        <!-- Row 3: Backend -->
         <rect x="170" y="160" width="340" height="48" rx="8" fill="rgba(45,31,78,.5)" stroke="#8b5cf6" stroke-width="0.5"/>
-        <text x="340" y="180" text-anchor="middle" fill="#c4b5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Serveur Open House</text>
-        <text x="340" y="196" text-anchor="middle" fill="#9886cc" font-size="11" font-family="Outfit,sans-serif">Hetzner VPS + Next.js + Supabase</text>
-
+        <text x="340" y="180" text-anchor="middle" fill="#c4b5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Serveur Hetzner VPS</text>
+        <text x="340" y="196" text-anchor="middle" fill="#9886cc" font-size="11" font-family="Outfit,sans-serif">HTML + Supabase (PostgreSQL)</text>
         <line x1="340" y1="208" x2="340" y2="232" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
-
-        <!-- Row 4: Dashboard -->
         <rect x="50" y="232" width="580" height="180" rx="12" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
-        <text x="340" y="258" text-anchor="middle" fill="#6ee7b7" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Open House Dashboard</text>
-
-        <!-- Roles -->
+        <text x="340" y="258" text-anchor="middle" fill="#6ee7b7" font-size="14" font-weight="600" font-family="Outfit,sans-serif">LeadFlow Dashboard</text>
         <rect x="80" y="276" width="150" height="48" rx="8" fill="rgba(26,29,36,.8)" stroke="#374151" stroke-width="0.5"/>
         <text x="155" y="296" text-anchor="middle" fill="#d1d5db" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Super Admin</text>
         <text x="155" y="312" text-anchor="middle" fill="#6b7280" font-size="11" font-family="Outfit,sans-serif">Open House</text>
-
         <rect x="265" y="276" width="150" height="48" rx="8" fill="rgba(42,31,10,.7)" stroke="#d97706" stroke-width="0.5"/>
         <text x="340" y="296" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Admin Agence</text>
         <text x="340" y="312" text-anchor="middle" fill="#a38321" font-size="11" font-family="Outfit,sans-serif">Assigner + gérer</text>
-
         <rect x="450" y="276" width="150" height="48" rx="8" fill="rgba(42,21,16,.6)" stroke="#dc2626" stroke-width="0.5" opacity="0.8"/>
         <text x="525" y="296" text-anchor="middle" fill="#fca5a5" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Agent</text>
-        <text x="525" y="312" text-anchor="middle" fill="#b07070" font-size="11" font-family="Outfit,sans-serif">Qualifier + notes</text>
-
-        <!-- Actions -->
+        <text x="525" y="312" text-anchor="middle" fill="#b07070" font-size="11" font-family="Outfit,sans-serif">Qualifier + agir</text>
         <rect x="100" y="348" width="90" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
         <text x="145" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Voir leads</text>
         <rect x="205" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
@@ -401,24 +384,21 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
         <rect x="300" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
         <text x="340" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Qualifier</text>
         <rect x="395" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
-        <text x="435" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Exporter</text>
+        <text x="435" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Appeler</text>
         <rect x="490" y="348" width="80" height="28" rx="6" fill="rgba(42,31,10,.5)" stroke="#d97706" stroke-width="0.5"/>
         <text x="530" y="366" text-anchor="middle" fill="#fbbf24" font-size="10" font-family="Outfit,sans-serif">CAPI ↑</text>
-
-        <!-- CAPI feedback arrow -->
         <path d="M590 300 L640 300 L640 184 L512 184" fill="none" stroke="#ffb84d" stroke-width="1.5" marker-end="url(#af2)"/>
         <text x="648" y="240" fill="#ffb84d" font-size="10" font-family="Azeret Mono,monospace">CAPI</text>
         <text x="648" y="254" fill="#a38321" font-size="9" font-family="Azeret Mono,monospace">Feedback</text>
       </svg>
 
-      <!-- CAPI mapping mini-table -->
       <div style="margin-top:28px;font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">Qualification → signal Meta</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-width:560px">
         <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--amb)">En cours</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Contact</span></div>
         <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--acc)">Qualifié</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Lead</span></div>
         <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--acc)">Converti</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Purchase</span></div>
       </div>
-      <p style="font-size:12px;color:var(--t3);margin-top:12px;line-height:1.6">Chaque qualification envoyée par un agent améliore le ciblage des futures campagnes. L'algorithme Meta apprend quels profils convertissent réellement — pas seulement qui remplit un formulaire.</p>
+      <p style="font-size:12px;color:var(--t3);margin-top:12px;line-height:1.6">Chaque qualification envoyée par un agent améliore le ciblage des futures campagnes. L'algorithme Meta apprend quels profils convertissent réellement.</p>
     </div>
 
   </div>
@@ -428,8 +408,8 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
 <section id="modules"><div class="C">
   <div class="rv">
     <p class="slb">Modules</p>
-    <h2 class="st">Module 1 — <em>12 features.</em></h2>
-    <p class="ss">Gestion et distribution de leads pour les agences immobilières. Chaque feature sera prototypée puis connectée à l'infrastructure réelle. Les modules futurs s'appuieront sur cette fondation.</p>
+    <h2 class="st">LeadFlow — <em>Acquéreurs & Vendeurs.</em></h2>
+    <p class="ss">Deux modules, un seul outil. Acquéreurs pour les acheteurs, Vendeurs pour les propriétaires. Features partagées + logique spécifique à chaque module.</p>
   </div>
   <div id="moduleMap" style="margin-top:64px"></div>
 </div></section>
@@ -440,25 +420,25 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <p class="slb">Roadmap</p>
     <h2 class="st">Le chemin vers le <em>produit.</em></h2>
   </div>
-  <div class="pipeline fly-steps" style="--pipe-fill:0.29">
+  <div class="pipeline fly-steps" style="--pipe-fill:0.16">
     <div class="pipe-line"></div><div class="pipe-line-fill"></div>
     <div class="pipe-steps">
-      <div class="pipe-step done"><div class="pipe-dot">100%</div><h3>Vision produit</h3><p>Brief Module 1 complet. Intégration Meta validée, architecture CAPI verrouillée.</p></div>
-      <div class="pipe-step done"><div class="pipe-dot">100%</div><h3>Sélection stack</h3><p>Stack verrouillée. Next.js, Supabase, Hetzner VPS. Choix rationnels, zéro impasse.</p></div>
-      <div class="pipe-step active"><div class="pipe-dot">30%</div><h3>Design shell</h3><p>Première version : nav, routing, rail, tokens. Cards, typo, composants et responsive en cours.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Briefs modules</h3><p>Brief général + détaillé par feature. Spécifications techniques et fonctionnelles.</p></div>
-      <div class="pipe-step active"><div class="pipe-dot">5%</div><h3>Prototype React</h3><p>Premiers écrans : page Leads et Tableau de bord avec carte Paris interactive.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Package</h3><p>Zip final avec contexte, briefs par module, dépendances. Prêt pour le développement.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Développement</h3><p>Implémentation serveur — Supabase, API, intégration Meta, données réelles.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Lancement</h3><p>En production avec de vraies agences. Retours terrain, itérations, adoption.</p></div>
+      <div class="pipe-step done"><div class="pipe-dot">100%</div><h3>Vision produit</h3><p>Brief complet — Acquéreurs + Vendeurs. Rôles, data flow, intégration Meta validée.</p></div>
+      <div class="pipe-step active"><div class="pipe-dot">25%</div><h3>Design HTML</h3><p>Frontend HTML + Google Sheets (mock). Design, UX, interactions, toutes les pages.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Intégration serveur</h3><p>Push HTML sur Hetzner VPS. Supabase (PostgreSQL) remplace Google Sheets.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Intégration Meta</h3><p>Webhooks Lead Ads, import historique, CAPI feedback, mapping champs par agence.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Auth & multi-tenancy</h3><p>Supabase Auth, rôles (Super Admin / Admin / Agent), RLS par agence.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Agence pilote</h3><p>Première agence réelle. Leads réels, retours terrain, ajustements.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Lancement</h3><p>Déploiement agences Open House. Onboarding, formation, support.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>SaaS</h3><p>Multi-tenant, onboarding self-serve, billing, commercialisation.</p></div>
     </div>
   </div>
   <div style="margin-top:48px;padding:32px 28px;background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
       <span style="font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--adim);border:1px solid rgba(0,255,170,.15);padding:5px 14px;letter-spacing:1.5px;text-transform:uppercase">Prochaine livraison</span>
     </div>
-    <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Finalisation du shell — cards, typographie, composants, responsive</h3>
-    <p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:560px">La structure de base est en place. Le prochain chantier : harmoniser les cards et composants entre les pages, verrouiller la hiérarchie typographique, définir les patterns réutilisables et poser le responsive mobile-first. Le shell finalisé devient la fondation de chaque feature.</p>
+    <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Design HTML complet — toutes les pages, données mock</h3>
+    <p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:560px">Finaliser le design de chaque page en HTML avec données Google Sheets. Module Acquéreurs et Vendeurs fonctionnels visuellement. Pipelines, scoring, actions, responsive mobile. Le design validé sera ensuite poussé sur le serveur avec une vraie base de données.</p>
   </div>
 </div></section>
 
@@ -487,34 +467,26 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
   <div class="changelog rv">
 
     <div class="cl-entry">
-      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-date">Semaine 14 — 20 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>LeadFlow — shell v1 + premières pages + carte Paris</h4>
-        <p>Le produit est renommé LeadFlow. Direction artistique posée : esthétique premium SaaS, douce et arrondie. Première version du shell : top nav avec branding LeadFlow, routing entre 5 pages, rail latéral rétractable avec actions contextuelles, toggles de thème. Design system documenté — tokens couleurs, typographie Inter, ombres, rayons 26px, espacements.</p>
+        <h4><span class="cl-tag new">New</span>Brief élargi — modules Acquéreurs & Vendeurs</h4>
+        <p>Suite à des échanges avec l'équipe Open House — walkthrough du Centre de Prospects Meta et review du workflow actuel — le brief produit a été entièrement revu. LeadFlow couvre désormais deux modules : Acquéreurs (acheteurs immobiliers) et Vendeurs (propriétaires). Chaque module a ses propres champs de formulaire, son pipeline personnalisable, sa logique de scoring (🔥 Hot / 🟡 Warm / ❄️ Cold), et ses critères de qualification. Logique duale : un acheteur peut être marqué comme vendeur potentiel et inversement.</p>
       </div>
     </div>
 
     <div class="cl-entry">
-      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-date">Semaine 14 — 20 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Page Leads — tableau, KPIs, pipeline, badges</h4>
-        <p>Page Leads fonctionnelle : 4 cartes KPI avec indicateurs de variation, barre de pipeline à 7 statuts (Nouveau → Perdu), tableau de leads avec onglets de filtre, lignes de leads avec avatars 46px, badges source Instagram/Facebook, indicateurs vérifié/prioritaire, anneaux de score, points de statut colorés, agent assigné. Sidebar droite avec aperçu équipe (taux de conversion par agent) et répartition des sources en double donut (Meta vs Manuel).</p>
+        <h4><span class="cl-tag update">Update</span>Prototype v2 — rebuild complet</h4>
+        <p>Reconstruction du prototype pour le rendre présentable et fonctionnel. Nouveau design : DM Sans + JetBrains Mono, tokens sémantiques, hiérarchie typographique resserrée. Panneau de détail lead (drawer 480px) avec édition inline du statut et de l'agent, onglets Infos/Activité/Notes, actions footer (Appeler, Email). Page Agents complète avec cards métriques. Rail latéral supprimé au profit d'une navigation top-bar uniquement.</p>
       </div>
     </div>
 
     <div class="cl-entry">
-      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-date">Semaine 14 — 20 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Tableau de bord — carte Paris interactive</h4>
-        <p>Carte interactive des 20 arrondissements de Paris en SVG — frontières géographiques exactes extraites et intégrées manuellement. Heatmap de densité de leads (gris → orange → rouge), effet 3D au survol (translation + ombre portée, couleur heatmap préservée), panneau de détail au clic (320px) avec liste de leads du quartier, compteur de non-assignés et boutons d'assignation par agent. Seine rendue en espace blanc négatif. KPIs mensuels, graphique hebdomadaire, répartition des statuts, section derniers leads.</p>
-      </div>
-    </div>
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 7 — 13 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Documentation produit formalisée</h4>
-        <p>Package structuré avec documentation complète : design system (tokens, typo, composants), modèle de données (entités, relations, données mock), architecture des composants (arbre, props, état), notes d'implémentation de la carte Paris, et roadmap technique. Base solide pour la suite du développement.</p>
+        <h4><span class="cl-tag update">Update</span>Stack simplifiée — HTML pur, pas de framework</h4>
+        <p>Le frontend passe en HTML / CSS / JS pur — pas de React, pas de framework. Google Sheets pour les données mock en phase design, Supabase + Hetzner VPS en production. Approche validée : HTML pour les 10 premiers clients, rebuild React envisagé uniquement quand le produit et la base client le justifient.</p>
       </div>
     </div>
 
@@ -526,24 +498,24 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <div class="cl-entry">
       <div class="cl-date">Semaine 7 — 13 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag update">Update</span>Intégration Meta — spec complète verrouillée</h4>
-        <p>Pipeline bidirectionnel validé : leads en temps réel via webhooks (Lead Ads API), qualification remontée vers Meta via CAPI (Conversions API). Trois événements mappés : Contact, Lead, Purchase. Couche de normalisation des champs par agence/formulaire définie. Import historique 90 jours inclus.</p>
+        <h4><span class="cl-tag new">New</span>LeadFlow — shell v1 + premières pages + carte Paris</h4>
+        <p>Le produit est renommé LeadFlow. Direction artistique posée. Première version du shell : top nav, routing entre 5 pages, rail latéral rétractable, design tokens. Carte interactive des 20 arrondissements de Paris en SVG — heatmap de densité, effet 3D au survol, panneau de détail au clic. Page Leads avec pipeline, tableau, badges sources, scores.</p>
       </div>
     </div>
 
     <div class="cl-entry">
       <div class="cl-date">Semaine 7 — 13 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag update">Update</span>Stack — migration Vercel → Hetzner VPS</h4>
-        <p>Déploiement sur serveur dédié Hetzner VPS (CPX21+). Essentiel pour les webhooks Meta en continu — pas de cold starts, pas de timeouts. Coût mis à jour : ~8 €/mois au lancement.</p>
+        <h4><span class="cl-tag update">Update</span>Intégration Meta — spec verrouillée + stack Hetzner</h4>
+        <p>Pipeline bidirectionnel validé : webhooks Lead Ads API + CAPI feedback loop. Trois événements mappés : Contact, Lead, Purchase. Déploiement migré de Vercel vers Hetzner VPS pour webhooks persistants.</p>
       </div>
     </div>
 
     <div class="cl-entry">
       <div class="cl-date">Semaine 31 mars — 6 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Vision produit & sélection stack — Module 1</h4>
-        <p>Brief complet du Module 1 analysé et validé : gestion de leads, attribution aux agents, qualification, notes, notifications, export. Trois rôles définis (Super Admin, Admin Agence, Agent). Data flow complet — de la campagne Meta jusqu'au feedback structuré. Stack technique verrouillée : Next.js 14+, Supabase (PostgreSQL + RLS), Tailwind CSS, shadcn/ui. Multi-tenancy intégrée dès le départ.</p>
+        <h4><span class="cl-tag new">New</span>Vision produit & sélection stack</h4>
+        <p>Brief initial du Module 1 analysé et validé. Trois rôles définis (Super Admin, Admin Agence, Agent). Data flow complet. Stack technique sélectionnée. Multi-tenancy intégrée dès le départ.</p>
       </div>
     </div>
 
@@ -560,7 +532,7 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
 <!-- FOOTER -->
 <footer><div class="C"><div class="fr">
   <p>&copy; 2026 studio AI2K. All rights reserved.</p>
-  <p>Dernière mise à jour : Semaine 7 — 13 avr</p>
+  <p>Dernière mise à jour : Semaine 14 — 20 avr</p>
   <a href="https://ai2k.dev">ai2k.dev</a>
 </div></div></footer>
 
@@ -569,42 +541,43 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
 <script>
 /* ═══ MODULE DATA ═══ */
 var MODULES = [
-  { section: "Fonctionnalités principales", items: [
-    { name: "Liste de leads", status: "planned", desc: "Vue par défaut — leads récents en premier, cards avec budget, horizon, localisation, statut, agent assigné." },
-    { name: "Fiche lead", status: "planned", desc: "Vue détaillée — contact, données formulaire, assignation, qualification, notes, historique de statut." },
-    { name: "Assignation", status: "planned", desc: "Attribution des leads aux agents — assignation, réassignation, vue des leads non attribués." },
-    { name: "Qualification", status: "planned", desc: "Workflow de statut en 7 étapes — Nouveau → À appeler → En cours → Qualifié → Non qualifié → Converti → Perdu." },
-    { name: "Enrichissement", status: "planned", desc: "Données ajoutées par l'agent — nationalité, apport financier, profession, âge + champs optionnels." },
-    { name: "Notes", status: "planned", desc: "Ajout et édition de notes par lead — suivi qualitatif des échanges avec le prospect." },
-    { name: "Notifications", status: "planned", desc: "Temps réel (in-app) + email — nouveau lead, assignation, changement de statut." },
-    { name: "Création manuelle", status: "planned", desc: "L'admin agence peut créer un lead manuellement — pour les prospects hors campagne Meta." },
-    { name: "Filtres", status: "planned", desc: "Agent, statut, budget, horizon, localisation, date, source — filtrage combiné." },
-    { name: "Recherche", status: "planned", desc: "Recherche par nom, téléphone, email — accès rapide à un lead spécifique." },
-    { name: "Export", status: "planned", desc: "Export CSV et Excel — données leads filtrées, exploitables hors dashboard." },
-    { name: "Priorisation", status: "planned", desc: "Mise en avant automatique — horizon court, téléphone vérifié, rappel demandé, budget élevé." },
+  { section: "Features partagées", items: [
+    { name: "Liste de leads", status: "proto", desc: "Vue principale — nom, budget, localisation, score, statut, agent assigné, date, source." },
+    { name: "Fiche lead (drawer)", status: "proto", desc: "Panneau latéral 480px — contact, détails, statut inline, agent, notes, timeline d'activité, actions." },
+    { name: "Assignation", status: "proto", desc: "Assigner / réassigner des leads aux agents. Visibilité agent limitée aux leads assignés." },
+    { name: "Pipeline personnalisable", status: "planned", desc: "Créer, éditer, supprimer des étapes. Déplacer les leads entre étapes. Chaque module a son propre pipeline." },
+    { name: "Scoring", status: "planned", desc: "🔥 Hot / 🟡 Warm / ❄️ Cold — basé sur l'horizon, le budget, la vérification téléphone, la demande de rappel." },
+    { name: "Notes", status: "proto", desc: "Notes libres par lead — ajout et édition. Visibles dans la fiche lead." },
+    { name: "Actions directes", status: "planned", desc: "Click-to-call, WhatsApp, email — actions immédiates depuis la fiche lead." },
+    { name: "Notifications", status: "planned", desc: "Nouveau lead, lead assigné — notifications en temps réel." },
+    { name: "Création manuelle", status: "planned", desc: "Ajouter un lead manuellement — pour les prospects hors campagne Meta." },
+    { name: "Filtres & recherche", status: "planned", desc: "Agent, statut, budget, localisation, score, date — filtrage combiné + recherche." },
+    { name: "Distribution email", status: "planned", desc: "Mode alternatif — l'agence distribue les leads par email au format tableau simple." },
+    { name: "Export", status: "planned", desc: "Export CSV et Excel — données leads filtrées." },
+  ]},
+  { section: "Module Acquéreurs", items: [
+    { name: "Formulaire acheteur", status: "planned", desc: "Nom, email, téléphone, budget, localisation, type de bien, horizon d'achat, demande de rappel, statut propriétaire." },
+    { name: "Qualification acheteur", status: "planned", desc: "Propriétaire (oui/non), nationalité, apport, profession, âge, notes complémentaires." },
+    { name: "Pipeline acheteur", status: "planned", desc: "À traiter → Contacté → Qualifié → Visite programmée → Offre faite → Converti." },
+  ]},
+  { section: "Module Vendeurs", items: [
+    { name: "Formulaire vendeur", status: "planned", desc: "Intention (délai, estimation), bien (type, localisation, surface, pièces, état), prix attendu, projet double (vente + achat)." },
+    { name: "Qualification vendeur", status: "planned", desc: "Motivation, urgence, réalisme du prix, potentiel d'exclusivité, type de vendeur." },
+    { name: "Pipeline vendeur", status: "planned", desc: "À traiter → Contacté → Estimation envoyée → RDV programmé → Mandat signé → Vendu." },
+    { name: "Logique duale", status: "planned", desc: "Un acheteur peut être marqué comme vendeur potentiel et inversement — double opportunité." },
+  ]},
+  { section: "Pages & navigation", items: [
+    { name: "Page Agents", status: "proto", desc: "Cards agents avec métriques — leads, conversions, temps de réponse, taux de conversion." },
+    { name: "Tableau de bord", status: "proto", desc: "KPIs, graphique hebdomadaire, répartition des sources (Meta vs Manuel), statuts, équipe." },
+    { name: "Page Campagnes", status: "planned", desc: "Liste des campagnes Meta avec statut, budget, nombre de leads, coût par lead." },
+    { name: "Page Paramètres", status: "planned", desc: "Réglages agence, préférences notifications, intégrations." },
   ]},
   { section: "Infrastructure", items: [
-    { name: "Auth / Rôles", status: "planned", desc: "Trois rôles — Super Admin (Open House), Admin Agence, Agent. Permissions différenciées par niveau.", essential: true },
-    { name: "Multi-tenancy", status: "planned", desc: "Isolation par agence via Supabase RLS — chaque agence voit uniquement ses leads et agents.", essential: true },
-    { name: "Gestion agences", status: "planned", desc: "Panel Super Admin — création d'agences, vue globale, monitoring de l'utilisation." },
-    { name: "Meta — Webhooks", status: "planned", desc: "Réception des leads en temps réel — endpoint persistant sur Hetzner VPS, zéro perte." },
-    { name: "Meta — Import historique", status: "planned", desc: "Import des 90 derniers jours de leads lors de la connexion d'une agence." },
-    { name: "Meta — Mapping champs", status: "planned", desc: "Couche de normalisation — chaque formulaire Meta a ses propres noms de champs." },
-    { name: "Meta — CAPI", status: "planned", desc: "Feedback loop — En cours→Contact, Qualifié→Lead, Converti→Purchase. Améliore le ciblage." },
-    { name: "Emails transactionnels", status: "planned", desc: "Notifications email via Resend — assignation, nouveau lead, alertes importantes." },
-  ]},
-  { section: "Design", items: [
-    { name: "Shell", status: "planned", desc: "Navigation, layout, color mode, typographie — fondation visuelle de l'application.", essential: true },
-    { name: "Design tokens", status: "planned", desc: "Palette, espacement, typographie, ombres — système de design cohérent et réutilisable." },
-    { name: "Composants", status: "planned", desc: "Cards, modals, tables, formulaires — patterns UI récurrents standardisés." },
-    { name: "Mobile responsive", status: "planned", desc: "Mobile-first — les agents sont sur le terrain, pas derrière un bureau." },
-  ]},
-  { section: "Modules futurs", future: true, items: [
-    { name: "Reporting & Analytics", status: "planned", desc: "Tableaux de bord de performance — taux de conversion, temps de réponse, qualité par campagne." },
-    { name: "Lead Scoring", status: "planned", desc: "Scoring automatique — hot, warm, cold — basé sur le budget, l'horizon et le comportement." },
-    { name: "Suivi automatisé", status: "planned", desc: "Relances email/SMS automatiques — séquences configurables par statut de lead." },
-    { name: "Performance agents", status: "planned", desc: "Leaderboards — taux de qualification, temps de réponse, conversion par agent." },
-    { name: "Multi-bureau", status: "planned", desc: "Hiérarchie multi-ville, multi-agence — vue consolidée pour les groupes immobiliers." },
+    { name: "Auth / Rôles", status: "planned", desc: "Super Admin (Open House), Admin Agence, Agent. Permissions par niveau.", essential: true },
+    { name: "Multi-tenancy", status: "planned", desc: "Isolation par agence via Supabase RLS — chaque agence voit uniquement ses données.", essential: true },
+    { name: "Meta — Webhooks", status: "planned", desc: "Réception des leads en temps réel sur Hetzner VPS." },
+    { name: "Meta — CAPI", status: "planned", desc: "Feedback loop — qualification remontée vers Meta pour optimiser le ciblage." },
+    { name: "Meta — Mapping champs", status: "planned", desc: "Normalisation des champs par agence/formulaire." },
   ]},
 ];
 
@@ -645,7 +618,7 @@ var fLogo=document.getElementById('fLogo'),hGhost=document.getElementById('hGhos
 var hero={x:0,y:0,size:0,ls:-2},navPos={x:0,y:0,size:18,ls:-0.5},ready=false,SCROLL_START=100,SCROLL_END=300;
 function measure(){var s=window.scrollY,hr=hGhost.getBoundingClientRect();hero.x=hr.left;hero.y=hr.top+s;hero.size=parseFloat(getComputedStyle(hGhost).fontSize);fLogo.style.fontSize=hero.size+'px';fLogo.style.letterSpacing=hero.ls+'px';var heroW=fLogo.offsetWidth;var scaleRatio=navPos.size/hero.size;var navW=heroW*scaleRatio;var nr=navAnchor.getBoundingClientRect();navPos.x=nr.left+nr.width/2-navW/2;navPos.y=Math.round((64-navPos.size)/2);ready=true}
 function ease(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1}
-function renderLogo(){if(!ready){requestAnimationFrame(renderLogo);return}var s=window.scrollY,raw=Math.max(0,Math.min(1,(s-SCROLL_START)/(SCROLL_END-SCROLL_START))),t=ease(raw),r=navPos.size/hero.size,sc=1+(r-1)*t,hy=hero.y-s,x=hero.x+(navPos.x-hero.x)*t,y=hy+(navPos.y-hy)*t,ls=hero.ls+(navPos.ls-hero.ls)*t;if(raw>=1){x=navPos.x;y=navPos.y;sc=r;ls=navPos.ls}if(raw<=0){x=hero.x;y=hy;sc=1;ls=hero.ls}fLogo.style.transform='translate3d('+x.toFixed(1)+'px,'+y.toFixed(1)+'px,0) scale('+sc.toFixed(5)+')';fLogo.style.letterSpacing=ls.toFixed(2)+'px';if(raw>.05)navEl.classList.add('scrolled');else navEl.classList.remove('scrolled');requestAnimationFrame(renderLogo)}
+function renderLogo(){if(!ready){requestAnimationFrame(renderLogo);return}var s=window.scrollY,raw=Math.max(0,Math.min(1,(s-SCROLL_START)/(SCROLL_END-SCROLL_START))),t=ease(raw),r=navPos.size/hero.size,sc=1+(r-1)*t,hy=hero.y-s,x=hero.x+(navPos.x-hero.x)*t,y=hy+(navPos.y-hy)*t,ls=hero.ls+(navPos.ls-hero.ls)*t;if(raw>=1){x=navPos.x;y=navPos.y;sc=r;ls=navPos.ls}if(raw<=0){x=hero.x;y=hy;sc=1;ls=hero.ls}if(y<0)y=navPos.y;fLogo.style.transform='translate3d('+x.toFixed(1)+'px,'+y.toFixed(1)+'px,0) scale('+sc.toFixed(5)+')';fLogo.style.letterSpacing=ls.toFixed(2)+'px';if(raw>.05)navEl.classList.add('scrolled');else navEl.classList.remove('scrolled');requestAnimationFrame(renderLogo)}
 function initLogo(){measure();renderLogo()}
 window.addEventListener('resize',measure);
 var lastVH=window.innerHeight;setInterval(function(){if(window.innerHeight!==lastVH){lastVH=window.innerHeight;measure()}},300);
