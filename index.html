@@ -1,18 +1,18 @@
 <!doctype html>
 <!--
   Open House Prospects — Step 1 Shell
-  v0.3 — topbar functionality pass
+  v0.4 — sticky topbar, add-lead stub
   Reference: docs/DESIGN_SPEC.md
   Workflow: docs/DESIGN_PROTOCOL.md
 
-  Changes vs v0.2.3:
-  - Avatar stack removed from topbar (presence indicator doesn't fit this product —
-    agents work individually, no real-time collaboration). renderAvatarStack kept
-    for future uses (assignment dropdowns, agent cards).
-  - User menu is now a real dropdown: identity block (name, email, role + agency),
-    Mon compte, Préférences, Aide, Déconnexion (red). Opens/closes with state,
-    outside-click dismisses, chevron rotates, mutually exclusive with agency switcher.
-  - Dark mode toggle kept in sidebar for now (Leo undecided on placement).
+  Changes vs v0.3:
+  - Topbar is now sticky (position: sticky; top: 0) — stays visible during scroll
+  - Scroll-aware shadow: subtle 2-layer shadow fades in once window.scrollY > 4,
+    fades out at the top. Signals elevation, not separation.
+  - "+" button wired to data-action="add-lead" — placeholder alert for now,
+    real "Ajouter un prospect" form built after Step 2.
+  - Temporary scroll-test cards added to force overflow. Removed when Step 2
+    fills the content area with real Leads page UI.
 -->
 <html lang="fr">
 <head>
@@ -447,13 +447,20 @@
 
   /* ───────── Top header ───────── */
   .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
     height: var(--header-h);
     padding: 0 32px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    border-bottom: 1px solid transparent; /* no border — whitespace separation */
+    background: var(--frame);
+    transition: box-shadow 180ms ease;
+  }
+  .topbar[data-scrolled="true"] {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
   }
   .page-title {
     font-size: 22px;
@@ -759,6 +766,31 @@
     background: var(--surface-tint);
     border-radius: var(--r-pill);
     white-space: nowrap;
+  }
+
+  /* Temporary scroll-test content — removed in Step 2 */
+  .scroll-test {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .scroll-test-card {
+    padding: 20px 24px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+  }
+  .scroll-test-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .scroll-test-card-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -1150,7 +1182,7 @@ function renderTopbar() {
       </div>
       <div class="topbar-actions">
         <div class="topbar-actions-icons">
-          <button class="icon-btn" aria-label="Ajouter">${icon.plus()}</button>
+          <button class="icon-btn" data-action="add-lead" aria-label="Ajouter un prospect" title="Ajouter un prospect">${icon.plus()}</button>
           <button class="icon-btn" aria-label="Notifications">
             ${icon.bell()}
             ${state.notifications > 0 ? `<span class="notif-badge">${state.notifications}</span>` : ""}
@@ -1174,10 +1206,25 @@ function renderContent() {
             Sidebar + topbar en place. Page active : <code>${state.route}</code>. Le contenu de <strong>Leads</strong> arrive à l'étape 2.
           </div>
         </div>
-        <div class="empty-state-chip">v0.3</div>
+        <div class="empty-state-chip">v0.4</div>
       </div>
+      ${renderScrollTestContent()}
     </main>
   `;
+}
+
+function renderScrollTestContent() {
+  // Temporary — removed when Step 2 adds real Leads content.
+  // Exists only so we can evaluate the sticky topbar behavior during scroll.
+  const cards = Array.from({ length: 8 }, (_, i) => `
+    <div class="scroll-test-card">
+      <div class="scroll-test-card-title">Carte ${i + 1} · test de défilement</div>
+      <div class="scroll-test-card-body">
+        Contenu factice pour forcer le défilement. Cette section disparaît à l'étape 2 quand la vraie page Leads est construite.
+      </div>
+    </div>
+  `).join("");
+  return `<div class="scroll-test">${cards}</div>`;
 }
 
 /* ───── Root render ───── */
@@ -1263,6 +1310,10 @@ document.addEventListener("click", (e) => {
       // Stub — real logout posts to /api/auth/logout on the Express backend later
       setState({ userMenuOpen: false });
       break;
+    case "add-lead":
+      // Stub — opens the "Ajouter un prospect" modal. Form built after Step 2.
+      alert("Ajouter un prospect — à venir. Construit après l'étape 2.");
+      break;
   }
 });
 
@@ -1272,6 +1323,17 @@ document.addEventListener("click", (e) => {
     setState({ sidebarOpen: false });
   }
 });
+
+/* Scroll-aware topbar: add a subtle bottom border once content scrolls under it */
+let scrolledState = false;
+window.addEventListener("scroll", () => {
+  const scrolled = window.scrollY > 4;
+  if (scrolled !== scrolledState) {
+    scrolledState = scrolled;
+    const topbar = document.querySelector(".topbar");
+    if (topbar) topbar.setAttribute("data-scrolled", scrolled ? "true" : "false");
+  }
+}, { passive: true });
 
 /* Initial render */
 render();
