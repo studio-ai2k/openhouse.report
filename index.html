@@ -1,16 +1,18 @@
 <!doctype html>
 <!--
   Open House Prospects — Step 1 Shell
-  v0.2.3 — logo frame adapts to light-background logos
+  v0.3 — topbar functionality pass
   Reference: docs/DESIGN_SPEC.md
   Workflow: docs/DESIGN_PROTOCOL.md
 
-  Changes vs v0.2.2:
-  - Agency avatar: when agency.logo is set, frame switches to white background
-    + subtle border + 4px internal padding. Works for dark-on-light logos
-    (the common case). Initials fallback uses the dark-circle variant.
-  - object-fit: cover → contain so logos display fully, not cropped
-  - Fixed filename: magrey_logo.PNG (uppercase, matches GitHub file)
+  Changes vs v0.2.3:
+  - Avatar stack removed from topbar (presence indicator doesn't fit this product —
+    agents work individually, no real-time collaboration). renderAvatarStack kept
+    for future uses (assignment dropdowns, agent cards).
+  - User menu is now a real dropdown: identity block (name, email, role + agency),
+    Mon compte, Préférences, Aide, Déconnexion (red). Opens/closes with state,
+    outside-click dismisses, chevron rotates, mutually exclusive with agency switcher.
+  - Dark mode toggle kept in sidebar for now (Leo undecided on placement).
 -->
 <html lang="fr">
 <head>
@@ -579,6 +581,9 @@
   .search input::placeholder { color: var(--text-muted); }
 
   /* User menu */
+  .user-menu-wrap {
+    position: relative;
+  }
   .user-menu {
     display: flex;
     align-items: center;
@@ -594,6 +599,10 @@
     border-color: var(--text-muted);
     box-shadow: var(--shadow-sm);
   }
+  .user-menu[aria-expanded="true"] {
+    border-color: var(--text-muted);
+    background: var(--surface-tint);
+  }
   .user-menu .avatar {
     width: 32px;
     height: 32px;
@@ -608,6 +617,94 @@
     width: 14px;
     height: 14px;
     color: var(--text-secondary);
+    transition: transform 160ms ease;
+  }
+  .user-menu[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+  /* User menu dropdown */
+  .user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 260px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
+    padding: 6px;
+    z-index: 40;
+  }
+  .user-menu-identity {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 10px 12px;
+  }
+  .user-menu-identity .avatar {
+    flex-shrink: 0;
+  }
+  .user-menu-identity-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.3;
+  }
+  .user-menu-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-menu-email {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-menu-role {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .user-menu-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 4px 2px;
+  }
+  .user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r-xs);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background 100ms ease;
+  }
+  .user-menu-item svg {
+    width: 15px;
+    height: 15px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    stroke-width: 1.7;
+  }
+  .user-menu-item:hover { background: var(--hover-warm); }
+  .user-menu-item--danger {
+    color: var(--accent-red);
+  }
+  .user-menu-item--danger svg {
+    color: var(--accent-red);
+  }
+  .user-menu-item--danger:hover {
+    background: var(--red-soft);
   }
 
   /* ───────── Content area (empty in Step 1) ───────── */
@@ -753,7 +850,14 @@ const state = {
     ],
     currentCityId: 1,
   },
-  user:   { id: 1, name: "Léo Martin", initials: "LM", tone: "#5B6DFF" },
+  user: {
+    id: 1,
+    name: "Léo Martin",
+    email: "leo@magrey.fr",
+    role: "Agent",      // "Agent" | "Manager" | "Admin"
+    initials: "LM",
+    tone: "#5B6DFF",
+  },
 
   // nav — active route
   route: "leads",  // leads | dashboard | agents | campaigns | database | settings | help
@@ -762,14 +866,14 @@ const state = {
   darkMode: false,
   sidebarOpen: false,        // mobile only
   agencySwitcherOpen: false, // sidebar dropdown
+  userMenuOpen: false,       // topbar dropdown
 
-  // team (for avatar stack)
+  // team kept in state for future uses (assignment dropdowns, etc.) — no longer displayed in topbar
   team: [
-    { initials: "SB", tone: "#6366f1" },
-    { initials: "MD", tone: "#0ea5e9" },
-    { initials: "JR", tone: "#a855f7" },
+    { initials: "SB", tone: "#6366f1", name: "Sophie Beaumont" },
+    { initials: "MD", tone: "#0ea5e9", name: "Marc Delacroix" },
+    { initials: "JR", tone: "#a855f7", name: "Julie Renard" },
   ],
-  teamMore: 2,
 
   notifications: 7,
 };
@@ -795,6 +899,8 @@ const icon = {
   help:        () => svg(`<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>`),
   mapPin:      () => svg(`<path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0116 0z"/><circle cx="12" cy="10" r="3"/>`),
   check:       () => svg(`<path d="M20 6L9 17l-5-5"/>`),
+  user:        () => svg(`<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>`),
+  logout:      () => svg(`<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>`),
 
   // nav
   home:        () => svg(`<path d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V10.5z"/>`),
@@ -968,11 +1074,59 @@ function renderSidebar() {
 
 /* ───── Topbar ───── */
 
+function renderUserMenu() {
+  const isOpen = state.userMenuOpen;
+  return `
+    <div class="user-menu-wrap">
+      <button class="user-menu" data-action="toggle-user-menu" aria-expanded="${isOpen}" aria-label="Profil">
+        ${renderAvatar(state.user.initials, state.user.tone, 32)}
+        ${icon.chevronDown()}
+      </button>
+      ${isOpen ? renderUserMenuDropdown() : ""}
+    </div>
+  `;
+}
+
+function renderUserMenuDropdown() {
+  const u = state.user;
+  return `
+    <div class="user-menu-dropdown" role="menu">
+      <div class="user-menu-identity">
+        ${renderAvatar(u.initials, u.tone, 40)}
+        <div class="user-menu-identity-text">
+          <div class="user-menu-name">${u.name}</div>
+          <div class="user-menu-email">${u.email}</div>
+          <div class="user-menu-role">${u.role} · ${state.agency.name}</div>
+        </div>
+      </div>
+      <div class="user-menu-divider"></div>
+      <div class="user-menu-item" data-action="go-profile" role="menuitem">
+        ${icon.user()}
+        <span>Mon compte</span>
+      </div>
+      <div class="user-menu-item" data-action="go-preferences" role="menuitem">
+        ${icon.settings()}
+        <span>Préférences</span>
+      </div>
+      <div class="user-menu-item" data-action="go-help" role="menuitem">
+        ${icon.help()}
+        <span>Aide &amp; support</span>
+      </div>
+      <div class="user-menu-divider"></div>
+      <div class="user-menu-item user-menu-item--danger" data-action="logout" role="menuitem">
+        ${icon.logout()}
+        <span>Déconnexion</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderAvatar(init, tone, size=28) {
-  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${tone}">${init}</div>`;
+  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${tone};border-radius:50%;display:grid;place-items:center;color:#fff;font-size:${Math.max(10, Math.round(size * 0.38))}px;font-weight:600;flex-shrink:0;">${init}</div>`;
 }
 
 function renderAvatarStack(team, more) {
+  // Kept for future uses (assignment dropdowns, agent cards). Not currently rendered in topbar.
   const avatars = team.map(m => renderAvatar(m.initials, m.tone)).join("");
   const moreTag = more > 0 ? `<div class="avatar-more">+${more}</div>` : "";
   return `<div class="avatar-stack">${avatars}${moreTag}</div>`;
@@ -995,7 +1149,6 @@ function renderTopbar() {
         <h1 class="page-title">${routeTitles[state.route] || ""}</h1>
       </div>
       <div class="topbar-actions">
-        ${renderAvatarStack(state.team, state.teamMore)}
         <div class="topbar-actions-icons">
           <button class="icon-btn" aria-label="Ajouter">${icon.plus()}</button>
           <button class="icon-btn" aria-label="Notifications">
@@ -1004,10 +1157,7 @@ function renderTopbar() {
           </button>
         </div>
         ${renderSearch()}
-        <button class="user-menu" aria-label="Profil">
-          ${renderAvatar(state.user.initials, state.user.tone, 32)}
-          ${icon.chevronDown()}
-        </button>
+        ${renderUserMenu()}
       </div>
     </header>
   `;
@@ -1024,7 +1174,7 @@ function renderContent() {
             Sidebar + topbar en place. Page active : <code>${state.route}</code>. Le contenu de <strong>Leads</strong> arrive à l'étape 2.
           </div>
         </div>
-        <div class="empty-state-chip">v0.2.3</div>
+        <div class="empty-state-chip">v0.3</div>
       </div>
     </main>
   `;
@@ -1060,13 +1210,23 @@ document.addEventListener("click", (e) => {
     // fall through so other handlers can still react
   }
 
+  // Outside-click closes the user menu
+  if (state.userMenuOpen && !e.target.closest(".user-menu-wrap")) {
+    setState({ userMenuOpen: false });
+  }
+
   const target = e.target.closest("[data-action], [data-route]");
   if (!target) return;
 
   // Nav
   const route = target.getAttribute("data-route");
   if (route) {
-    setState({ route, sidebarOpen: false, agencySwitcherOpen: false });
+    setState({
+      route,
+      sidebarOpen: false,
+      agencySwitcherOpen: false,
+      userMenuOpen: false,
+    });
     return;
   }
 
@@ -1080,7 +1240,10 @@ document.addEventListener("click", (e) => {
       setState({ sidebarOpen: true });
       break;
     case "toggle-agency-switcher":
-      setState({ agencySwitcherOpen: !state.agencySwitcherOpen });
+      setState({ agencySwitcherOpen: !state.agencySwitcherOpen, userMenuOpen: false });
+      break;
+    case "toggle-user-menu":
+      setState({ userMenuOpen: !state.userMenuOpen, agencySwitcherOpen: false });
       break;
     case "select-city": {
       const cityId = Number(target.getAttribute("data-city-id"));
@@ -1090,6 +1253,16 @@ document.addEventListener("click", (e) => {
       });
       break;
     }
+    case "go-profile":
+    case "go-preferences":
+    case "go-help":
+      // Stubs — will route to the right page when those pages exist
+      setState({ userMenuOpen: false });
+      break;
+    case "logout":
+      // Stub — real logout posts to /api/auth/logout on the Express backend later
+      setState({ userMenuOpen: false });
+      break;
   }
 });
 
