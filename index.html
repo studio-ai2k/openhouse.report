@@ -1,43 +1,61 @@
 <!doctype html>
 <!--
-  Open House Prospects — Step 1 Shell
-  v0.6.2 — drawer close-button centering + moved to top-right
+  Open House Prospects — Step 2 Leads page (in progress)
+  v0.7.0-dev (Phase 2 of 4) — chip shows v0.7.0-p2 during development
   Reference: docs/DESIGN_SPEC.md
   Workflow: docs/DESIGN_PROTOCOL.md
 
-  Changes vs v0.6.1:
-  - Drawer close-button now uses the same .icon-btn class as the topbar + and bell,
-    fixing a centering bug (old .drawer-close had nested spans that misaligned the
-    SVG on desktop due to inline baseline behavior).
-  - Close-X moved from top-LEFT to top-RIGHT of the drawer header on desktop
-    (conventional Western reading order for modals/panels).
-  - On mobile, back-arrow stays on the top-LEFT (iOS/Android native pattern) but
-    uses the same .icon-btn design as desktop — consistent visual family.
-  - Icon swap (X desktop ↔ arrow mobile) now done at render time via isMobile()
-    helper, not via CSS display-swap of span wrappers.
-  - Resize listener re-renders the drawer when window crosses the 768px breakpoint.
+  Step 2 ships as a single v0.7.0 at Phase 4. During development the chip
+  carries a -pN suffix so iPad reviews can tell which phase a push is from.
+  Zip filename during phases: openhouse-prospects-phaseN.zip. Final: v0.7.0.
 
-  Changes vs v0.5.1 (rolled up from v0.6–v0.6.1):
-  - Drawer (lead detail panel) integrated. Click any lead card to open.
-    Structure matches drawer_mockup.html: below-topbar, respects-sidebar, 480px,
-    no backdrop, clickable cards behind. Mobile: full-screen takeover, back-arrow
-    replaces close-X, tabs scroll horizontally, body-scroll locked.
-  - 6 dummy leads added to state.leads (schema preview of DATA_MODEL.md).
-    Step 2 will swap these cards for a real table row structure; the drawer
-    contract stays the same (state.drawer = { leadId, tab }).
-  - Drawer contents are placeholder — 4 tabs (Infos, Qualification, Activité,
-    Notes), clicking each switches the active tab but the body still shows the
-    placeholder. Real form/timeline/notes content lands in Step 3.
-  - ESC key closes drawer/menus/sidebar (a11y).
-  - Clicking the same lead twice toggles the drawer closed; clicking a
-    different lead swaps contents without re-animating.
-  - CSS architecture: media queries moved to end of stylesheet (mobile-first
-    cascade) — previously desktop .drawer{width:480px} was overriding the
-    mobile width:100% rule due to source order.
-  - Route-aware content: non-Leads routes now show "à venir" placeholder
-    instead of incorrectly showing Leads content.
-  - Removed unused tokens: --accent-purple, --accent-pink, --purple-soft,
-    --pink-soft. Added --violet-soft for the "En cours" status pill.
+  Phase 2 scope (Variation A on route "leads-a", shared primitives):
+  - New render primitives, all data-driven off state.agency.pipeline and
+    state.leads (they share the same primitives Phase 3 will reuse for
+    Variation B):
+      renderLeadsToggleA  — promoted tabs (icon + label + count pill,
+                            2px underline accent on active)
+      renderLeadsSearch   — in-page search input (topbar search is
+                            suppressed on Leads routes, see Phase 1)
+      renderPipelineBar   — horizontal stage cells with tinted bg + counts,
+                            clickable as shortcut to set the filter tab
+      renderFilterTabs    — Tous · [pipeline stages] · Perdu, each with
+                            counts, horizontal scroll on mobile
+      renderScoreChip     — Chaud / Tiède / Froid with colored dot + label
+      renderSourceIcon    — small colored square for ig/fb/web/email/manual
+      renderLeadCard      — richer click-to-open-drawer card with avatar,
+                            name, price, zone, source, score, status,
+                            verified, agent initials, date
+      renderLeadsEmptyState — "aucun vendeur" or "aucun résultat"
+  - Pure view-compute helper: computeLeadsView() returns filtered leads +
+    counts per tab + pipeline for current type, single source of truth for
+    everything the Leads page renders.
+  - New data-actions: set-lead-type (also resets filterTab to "all"),
+    set-filter-tab (used by both filter tabs and pipeline bar cells).
+  - New delegated input listener for filter-search — mirrors the existing
+    click delegation pattern.
+  - New icons: key (Vendeurs affordance in the toggle).
+  - Counts discipline: toggle type counts = raw totals (not affected by
+    search), tab counts = type + search filtered (not affected by active
+    tab), visible leads = all three filters applied. Click a tab or a
+    pipeline cell → only the visible set changes; counts stay stable.
+
+  Phase 2 scope (what route "leads-b" still shows):
+  - Route "leads-b" continues to render the Phase 1 "fondations en place"
+    placeholder with the variant tag. Phase 3 replaces it with Variation B
+    (compact tinted toggle).
+
+  What Phase 2 does NOT include (by design):
+  - The real leads table is Step 2 Layer 2 — we're still on cards through
+    Phase 4. Phase 4 picks the winning variation, then Layer 2 builds the
+    table on top of the chosen toggle.
+  - Drawer tab bodies (Infos / Qualification / Activité / Notes) remain
+    placeholders — that's Step 3.
+
+  Phase 3: Variation B on route "leads-b" — same primitives, different
+  toggle (compact segmented pill with type-accent color).
+  Phase 4: delete losing variant, rename winner's route back to "leads",
+  resolve mono-font + feedback-card decisions, drop the "-pN" chip suffix.
 -->
 <html lang="fr">
 <head>
@@ -700,6 +718,14 @@
   }
   .search input::placeholder { color: var(--text-muted); }
 
+  /* Topbar search suppression on Leads routes.
+     The topbar search is a future global search. On Leads pages, the page-level
+     search (arriving Phase 2) IS the search — so the topbar one hides to avoid
+     two competing affordances. Non-Leads routes keep it visible.
+     Uses body[data-route] which is set in render(). Base rule, not media-query. */
+  body[data-route="leads-a"] .topbar .search,
+  body[data-route="leads-b"] .topbar .search { display: none; }
+
   /* User menu */
   .user-menu-wrap {
     position: relative;
@@ -881,31 +907,6 @@
     white-space: nowrap;
   }
 
-  /* Temporary scroll-test content — removed in Step 2 */
-  .scroll-test {
-    margin-top: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .scroll-test-card {
-    padding: 20px 24px;
-    background: var(--panel);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--r-md);
-  }
-  .scroll-test-card-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-  }
-  .scroll-test-card-body {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
   /* ═══════════════════════════════════════════════════════════════
      RESPONSIVE rules live at the bottom of the stylesheet so they
      override all base rules regardless of base-rule source order.
@@ -1067,18 +1068,403 @@
   }
   .drawer-footer .btn { flex: 1; }
 
-  /* Clickable scroll-test cards (step-1 stand-in for lead rows) */
-  .scroll-test-card {
+  /* ═══════════════════════════════════════════════════════════════
+     LEADS PAGE — v0.7.0-p2 controls + card list
+     Base rules only. Mobile-specific rules live in the @media block
+     at the bottom of this stylesheet (source-order cascade — see §5
+     architecture notes in HANDOFF).
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* Variation A toggle: promoted tabs with icon + label + count pill.
+     Sits as the topmost band of the Leads page — it's THE primary
+     affordance, so it gets the most visual weight. */
+  .leads-toggle-a {
+    display: flex;
+    gap: 4px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 4px 8px 0;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .leads-toggle-a::-webkit-scrollbar { display: none; }
+  .leads-toggle-a-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 14px 12px;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
     cursor: pointer;
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+    margin-bottom: -1px;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .leads-toggle-a-tab svg { width: 16px; height: 16px; opacity: 0.7; }
+  .leads-toggle-a-tab-count {
+    background: var(--surface-tint);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: var(--r-pill);
+    line-height: 1.4;
+  }
+  .leads-toggle-a-tab[aria-selected="true"] {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent-blue);
+  }
+  .leads-toggle-a-tab[aria-selected="true"] svg {
+    opacity: 1;
+    color: var(--accent-blue);
+  }
+  .leads-toggle-a-tab[aria-selected="true"] .leads-toggle-a-tab-count {
+    background: var(--blue-soft);
+    color: var(--accent-blue);
+  }
+  .leads-toggle-a-tab:hover:not([aria-selected="true"]) { color: var(--text-primary); }
+
+  /* Utility row: meta left, page search right. */
+  .leads-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .leads-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: -0.05px;
+  }
+
+  /* Page-level Leads search. Shorter and less prominent than the topbar
+     search (which is hidden on Leads routes anyway — see Phase 1 CSS).
+     Matches the .search pill shape for visual rhyme. */
+  .leads-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 320px;
+    max-width: 100%;
+    height: 38px;
+    padding: 0 14px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-pill);
     transition: border-color 120ms ease, box-shadow 120ms ease;
   }
-  .scroll-test-card:hover {
+  .leads-search:focus-within {
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 3px rgba(91, 109, 255, 0.08);
+  }
+  .leads-search svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-body);
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+  .leads-search input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    min-width: 0;
+  }
+  .leads-search input::placeholder { color: var(--text-muted); }
+
+  /* Pipeline bar — one cell per pipeline stage. Tinted bg = stage color.
+     Cells are flex:1 so they fill the row, scroll horizontally on narrow. */
+  .pipeline-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .pipeline-bar::-webkit-scrollbar { display: none; }
+  .pipeline-cell {
+    flex: 1 1 0;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px 14px;
+    background: var(--cell-bg, var(--surface-tint));
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    color: var(--cell-fg, var(--text-secondary));
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: border-color 120ms ease, transform 60ms ease;
+  }
+  .pipeline-cell:hover { border-color: currentColor; }
+  .pipeline-cell:active { transform: translateY(0.5px); }
+  .pipeline-cell[aria-pressed="true"] {
+    border-color: currentColor;
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+  .pipeline-cell-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    line-height: 1.3;
+  }
+  .pipeline-cell-count {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    line-height: 1;
+  }
+
+  /* Filter tabs — horizontal scrollable pills, "Tous · [stages] · Perdu". */
+  .filter-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+  .filter-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-pill);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    letter-spacing: -0.1px;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+  .filter-tab:hover { background: var(--row-hover); color: var(--text-primary); }
+  .filter-tab[aria-selected="true"] {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--panel);
+  }
+  .filter-tab-count {
+    background: var(--surface-tint);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: var(--r-pill);
+    line-height: 1.4;
+  }
+  .filter-tab[aria-selected="true"] .filter-tab-count {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--panel);
+  }
+
+  /* Score chip — Chaud / Tiède / Froid. Colored dot + label inside a
+     tinted pill. Chosen so all three weights read at the same visual
+     volume (no one chip shouts louder than another). */
+  .score-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    line-height: 1.3;
+  }
+  .score-chip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .score-chip--hot  { background: #FCEBEB; color: #A32D2D; }
+  .score-chip--hot  .score-chip-dot { background: #E24B4A; }
+  .score-chip--warm { background: #FAEEDA; color: #854F0B; }
+  .score-chip--warm .score-chip-dot { background: #F5B94C; }
+  .score-chip--cold { background: #E6F1FB; color: #0C447C; }
+  .score-chip--cold .score-chip-dot { background: #85B7EB; }
+
+  /* Source icon — small branded tile. Not brand SVG — consistency at
+     18px beats fidelity, and avoids trademark concerns. */
+  .source-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #FFF;
+    flex-shrink: 0;
+    line-height: 1;
+    letter-spacing: -0.2px;
+  }
+  .source-icon--ig     { background: #E1306C; }
+  .source-icon--fb     { background: #1877F2; }
+  .source-icon--web    { background: var(--text-secondary); }
+  .source-icon--email  { background: #5B6DFF; }
+  .source-icon--manual { background: #1C1C1F; }
+
+  /* Status pill — same shape as drawer-badge but usable inline anywhere. */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+  }
+
+  /* Lead card — stacked list of clickable rows. Structure: identity
+     (avatar + name + email) · meta (price + zone + timeline) · signals
+     (source, score, status, verified, agent, date). The three regions
+     flex horizontally on desktop and wrap on narrow. */
+  .lead-card-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lead-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  }
+  .lead-card:hover {
     border-color: var(--border-strong);
+    background: var(--row-hover);
     box-shadow: var(--shadow-xs);
   }
-  .scroll-test-card[data-selected="true"] {
+  .lead-card[data-selected="true"] {
     background: #F2F5FF;
     border-color: #B5C4FF;
+  }
+  .lead-card-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 2 1 220px;
+    min-width: 0;
+  }
+  .lead-card-identity-text { min-width: 0; }
+  .lead-card-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lead-card-email {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lead-card-meta {
+    flex: 1 1 180px;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .lead-card-price {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+  .lead-card-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .lead-card-signals {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+  .lead-card-date {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 58px;
+    text-align: right;
+  }
+  .lead-verified {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #2F9D6F;
+    flex-shrink: 0;
+  }
+  .lead-verified svg { width: 14px; height: 14px; stroke-width: 2.5; }
+  .lead-verified--off { color: var(--text-muted); font-size: 14px; }
+  .lead-agent {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .lead-agent--none { color: var(--text-muted); font-size: 14px; }
+
+  /* Empty-state inside the leads list (no-match / no-sellers). Softer than
+     the main app empty-state — visually a card at the spot where rows
+     would have been. */
+  .leads-empty {
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+  }
+  .leads-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .leads-empty-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 440px;
+    margin: 0 auto;
+    line-height: 1.55;
   }
   /* ═══════════════════════════════════════════════════════════════
      RESPONSIVE (placed last so these override all base rules
@@ -1186,6 +1572,31 @@ const state = {
       { id: 2, name: "Riviera" },
     ],
     currentCityId: 1,
+
+    // Pipeline stages per lead type. Dynamic per agency (PROJECT_SUMMARY §"Custom
+    // Pipeline Stages"): stored here, read by every UI element that deals with
+    // status (filter tabs, pipeline bar, drawer qualification tab, CAPI mapping).
+    // Stage `id` is stable (what gets stored on a lead); `label` can be renamed
+    // by the agency without breaking data. leads with status "lost" sit outside
+    // the pipeline — terminal state, rendered as the "Perdu" tab.
+    pipeline: {
+      buyer: [
+        { id: "to_process",    label: "À traiter" },
+        { id: "contacted",     label: "Contacté" },
+        { id: "qualified",     label: "Qualifié" },
+        { id: "visit_planned", label: "Visite programmée" },
+        { id: "offer_made",    label: "Offre faite" },
+        { id: "converted",     label: "Converti" },
+      ],
+      seller: [
+        { id: "to_process",      label: "À traiter" },
+        { id: "contacted",       label: "Contacté" },
+        { id: "estimation_sent", label: "Estimation envoyée" },
+        { id: "appointment",     label: "RDV programmé" },
+        { id: "mandate_signed",  label: "Mandat signé" },
+        { id: "sold",            label: "Vendu" },
+      ],
+    },
   },
   user: {
     id: 1,
@@ -1197,7 +1608,9 @@ const state = {
   },
 
   // nav — active route
-  route: "leads",  // leads | dashboard | agents | campaigns | database | settings | help
+  // "leads-a" and "leads-b" are the A/B variants during Step 2 development.
+  // Phase 4 deletes the losing variant and renames the winner back to "leads".
+  route: "leads-a",  // "leads-a" | "leads-b" | "dashboard" | "agents" | "campaigns" | "database" | "settings" | "help"
 
   // chrome state
   darkMode: false,
@@ -1206,31 +1619,104 @@ const state = {
   userMenuOpen: false,       // topbar dropdown
   drawer: null,              // null | { leadId, tab: "infos"|"qualification"|"activite"|"notes" }
 
-  // team kept in state for future uses (assignment dropdowns, etc.) — no longer displayed in topbar
+  // Leads page state — consumed by Variation A (Phase 2) and Variation B (Phase 3).
+  // Lives here rather than on state.route so it persists across A ↔ B swaps.
+  leadType:    "buyer",      // "buyer" | "seller" — drives toggle + pipeline lookup
+  filterTab:   "all",        // "all" | pipeline stage id | "lost"
+  leadsSearch: "",           // page-scoped search query
+
+  // Team roster. IDs used by lead.assignedAgentId.
   team: [
-    { initials: "SB", tone: "#6366f1", name: "Sophie Beaumont" },
-    { initials: "MD", tone: "#0ea5e9", name: "Marc Delacroix" },
-    { initials: "JR", tone: "#a855f7", name: "Julie Renard" },
+    { id: 1, initials: "SB", tone: "#6366F1", name: "Sophie Beaumont" },
+    { id: 2, initials: "MD", tone: "#0EA5E9", name: "Marc Delacroix" },
+    { id: 3, initials: "JR", tone: "#A855F7", name: "Julie Renard" },
   ],
 
   notifications: 7,
 
-  // Dummy leads — these stand in for real data until Step 2 wires a proper table.
-  // The 6 scroll-test cards on the Leads page each map to one of these.
-  // Schema is a simplified preview of what DATA_MODEL.md specs; real fields land in Step 3.
+  // Dummy leads — stand-in until Phase 2 of server integration. Schema now mirrors
+  // docs/DATA_MODEL.md: buyer fields (budget, zone, timeline, projectType) always
+  // present on buyers; seller fields (surface, rooms, expectedPrice, condition,
+  // sellingTimeline) present on sellers. status holds a pipeline stage id (from
+  // agency.pipeline[type]) or "lost" for terminal-fail leads. score / source are
+  // closed enums. assignedAgentId references state.team; null = unassigned.
   leads: [
-    { id: 1, initials: "ML", tone: "#A855F7", name: "Marie Lefèvre",        status: "Qualifié",  statusTone: "green",  budget: "450 000 €",   city: "Paris 16e", type: "Acquéreur", timeline: "1–3 mois" },
-    { id: 2, initials: "PD", tone: "#0EA5E9", name: "Pierre Durand",         status: "En cours",  statusTone: "violet", budget: "320 000 €",   city: "Neuilly",   type: "Acquéreur", timeline: "3–6 mois" },
-    { id: 3, initials: "SM", tone: "#6366F1", name: "Sophie Martin",         status: "Nouveau",   statusTone: "blue",   budget: "680 000 €",   city: "Paris 7e",  type: "Vendeur",   timeline: "Immédiat" },
-    { id: 4, initials: "JM", tone: "#14B8A6", name: "Jean-Baptiste Moreau",  status: "À rappeler",statusTone: "amber",  budget: "275 000 €",   city: "Boulogne",  type: "Acquéreur", timeline: "6 mois+" },
-    { id: 5, initials: "CR", tone: "#F97316", name: "Camille Rousseau",      status: "Nouveau",   statusTone: "blue",   budget: "520 000 €",   city: "Paris 8e",  type: "Vendeur",   timeline: "Immédiat" },
-    { id: 6, initials: "AB", tone: "#EF4444", name: "Antoine Bernard",       status: "Qualifié",  statusTone: "green",  budget: "895 000 €",   city: "Paris 17e", type: "Acquéreur", timeline: "1–3 mois" },
+    { id: 1,  type: "buyer",  initials: "ML", tone: "#A855F7", name: "Marie Lefèvre",       email: "marie.lefevre@gmail.com", phone: "+33 6 78 90 12 34", phoneVerified: true,  budget: "450 000 €",   zone: "Paris 16e",         timeline: "1–3 mois",  projectType: "Résidence principale",     status: "qualified",      score: "hot",  source: "ig",     assignedAgentId: 1,    campaign: "Prestige Paris 16e",   createdAt: "09 avr. 2026", notes: "Recherche 3 pièces avec balcon. Budget flexible." },
+    { id: 2,  type: "buyer",  initials: "PD", tone: "#0EA5E9", name: "Pierre Durand",        email: "p.durand@outlook.fr",    phone: "+33 6 89 01 23 45", phoneVerified: true,  budget: "320 000 €",   zone: "Neuilly",            timeline: "3–6 mois",  projectType: "Résidence principale",     status: "contacted",      score: "warm", source: "fb",     assignedAgentId: 2,    campaign: "Neuilly Familles",     createdAt: "08 avr. 2026", notes: "Premier achat. Besoin d'accompagnement financement." },
+    { id: 3,  type: "buyer",  initials: "SM", tone: "#6366F1", name: "Sophie Martin",        email: "smartin@free.fr",        phone: "+33 7 12 34 56 78", phoneVerified: false, budget: "680 000 €",   zone: "Paris 7e",           timeline: "Immédiat",  projectType: "Pied-à-terre",              status: "to_process",     score: "hot",  source: "ig",     assignedAgentId: null, campaign: "Luxe Rive Gauche",     createdAt: "09 avr. 2026", notes: "" },
+    { id: 4,  type: "buyer",  initials: "JM", tone: "#14B8A6", name: "Jean-Baptiste Moreau", email: "jb.moreau@gmail.com",    phone: "+33 6 23 45 67 89", phoneVerified: true,  budget: "275 000 €",   zone: "Boulogne",           timeline: "6–12 mois", projectType: "Résidence principale",     status: "contacted",      score: "cold", source: "fb",     assignedAgentId: 1,    campaign: "Boulogne Actifs",      createdAt: "07 avr. 2026", notes: "Rappeler lundi matin. Intéressé par T2 avec parking." },
+    { id: 5,  type: "buyer",  initials: "CR", tone: "#F97316", name: "Camille Rousseau",     email: "camille.r@icloud.com",   phone: "+33 7 34 56 78 90", phoneVerified: true,  budget: "520 000 €",   zone: "Paris 8e",           timeline: "1–3 mois",  projectType: "Investissement patrimonial", status: "to_process",     score: "warm", source: "ig",     assignedAgentId: null, campaign: "Prestige Madeleine",   createdAt: "09 avr. 2026", notes: "Investissement locatif. Cherche rentabilité > 4%." },
+    { id: 6,  type: "buyer",  initials: "AB", tone: "#EF4444", name: "Antoine Bernard",      email: "a.bernard@yahoo.fr",     phone: "+33 6 45 67 89 01", phoneVerified: true,  budget: "895 000 €",   zone: "Paris 17e",          timeline: "1–3 mois",  projectType: "Résidence principale",     status: "visit_planned",  score: "hot",  source: "ig",     assignedAgentId: 3,    campaign: "Prestige Paris 17e",   createdAt: "05 avr. 2026", notes: "Visite prévue mercredi 14h." },
+    { id: 7,  type: "buyer",  initials: "IC", tone: "#8B5CF6", name: "Isabelle Chen",        email: "ichen@proton.me",        phone: "+33 7 56 78 90 12", phoneVerified: true,  budget: "850 000 €",   zone: "Paris 6e",           timeline: "Immédiat",  projectType: "Résidence principale",     status: "qualified",      score: "hot",  source: "ig",     assignedAgentId: 1,    campaign: "Luxe Rive Gauche",     createdAt: "06 avr. 2026", notes: "Expatriée, retour en France. Budget confortable." },
+    { id: 8,  type: "buyer",  initials: "LF", tone: "#64748B", name: "Lucas Fontaine",       email: "l.fontaine@gmail.com",   phone: "+33 6 67 89 01 23", phoneVerified: false, budget: "195 000 €",   zone: "Paris 19e",          timeline: "6–12 mois", projectType: "Phase d'exploration",      status: "lost",           score: "cold", source: "web",    assignedAgentId: 2,    campaign: "—",                    createdAt: "04 avr. 2026", notes: "Budget insuffisant pour le secteur." },
+    { id: 9,  type: "buyer",  initials: "NE", tone: "#10B981", name: "Nadia El Amrani",      email: "nadia.ea@gmail.com",     phone: "+33 7 78 90 12 34", phoneVerified: true,  budget: "415 000 €",   zone: "Paris 11e",          timeline: "1–3 mois",  projectType: "Résidence principale",     status: "contacted",      score: "warm", source: "email",  assignedAgentId: null, campaign: "—",                    createdAt: "08 avr. 2026", notes: "Formulaire site web. Rappeler en soirée." },
+    { id: 10, type: "buyer",  initials: "FD", tone: "#E11D48", name: "François Dubois",      email: "fdubois@wanadoo.fr",     phone: "+33 6 89 01 23 45", phoneVerified: true,  budget: "1 200 000 €", zone: "Paris 16e",          timeline: "Immédiat",  projectType: "Résidence principale",     status: "offer_made",     score: "hot",  source: "ig",     assignedAgentId: 3,    campaign: "Prestige Paris 16e",   createdAt: "07 avr. 2026", notes: "Recherche hôtel particulier. Offre transmise mardi." },
+    { id: 11, type: "seller", initials: "CV", tone: "#F59E0B", name: "Christine Vidal",      email: "c.vidal@orange.fr",      phone: "+33 6 90 12 34 56", phoneVerified: true,  surface: 85,  rooms: 4, expectedPrice: "1 150 000 €", condition: "Bon état",      zone: "Paris 6e",           sellingTimeline: "3–6 mois", status: "estimation_sent", score: "warm", source: "ig",     assignedAgentId: 1,    campaign: "Estimation Rive Gauche", createdAt: "06 avr. 2026", notes: "Propriétaire depuis 12 ans. Souhaite aussi acheter après vente." },
+    { id: 12, type: "seller", initials: "PA", tone: "#7C3AED", name: "Philippe Arnaud",      email: "p.arnaud@icloud.com",    phone: "+33 7 01 23 45 67", phoneVerified: true,  surface: 120, rooms: 5, expectedPrice: "2 400 000 €", condition: "Rénové",         zone: "Saint-Tropez",       sellingTimeline: "Immédiat", status: "appointment",     score: "hot",  source: "manual", assignedAgentId: 2,    campaign: "—",                      createdAt: "03 avr. 2026", notes: "Villa avec vue mer. RDV samedi 10h sur site." },
   ],
 };
 
 function setState(patch) {
   Object.assign(state, patch);
   render();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEAD DATA HELPERS — pure lookups, no DOM. Used by the drawer in
+   Phase 1 and by the Leads controls + card/table in Phase 2/3.
+   Kept here (between state and renderers) so any renderer can use them.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* "buyer" → "Acquéreur", "seller" → "Vendeur". Falls back to the raw key. */
+function typeLabel(typeKey) {
+  return { buyer: "Acquéreur", seller: "Vendeur" }[typeKey] || typeKey;
+}
+
+/* Look up a stage label from the agency pipeline. "lost" is a terminal state
+   outside the pipeline array — renders as "Perdu". Unknown ids fall back to
+   the id itself so missing data is visible rather than silently blank. */
+function stageLabel(typeKey, stageId) {
+  if (stageId === "lost") return "Perdu";
+  const pipeline = state.agency.pipeline[typeKey] || [];
+  const stage = pipeline.find(s => s.id === stageId);
+  return stage ? stage.label : stageId;
+}
+
+/* Stage id → { bg, fg } pill colors. Values chosen to match DESIGN_SPEC §8
+   status semantics (new = blue, progress = violet, qualified = green,
+   converted = dark green, terminal-fail = red, amber for offer/mandate-signed).
+   Buyer and seller stage ids share colors where the semantic matches
+   ("contacted" same in both, "converted" ↔ "sold" both dark green, etc.).
+   If the status CSS tokens get formalized in :root later, swap hex for var(). */
+function stageColors(stageId) {
+  return {
+    // Buyer pipeline
+    to_process:      { bg: "#E8ECFF", fg: "#5B6DFF" },  // blue — fresh
+    contacted:       { bg: "#EDE7FF", fg: "#6D48DB" },  // violet — in motion
+    qualified:       { bg: "#E4F4E9", fg: "#2F9D6F" },  // green — qualified
+    visit_planned:   { bg: "#E8ECFF", fg: "#5B6DFF" },  // blue — progressing
+    offer_made:      { bg: "#FBF0DC", fg: "#8C5A08" },  // amber — committed
+    converted:       { bg: "#D8EEDF", fg: "#1F7D54" },  // dark green — won
+    // Seller pipeline (shared where semantically equivalent)
+    estimation_sent: { bg: "#EDE7FF", fg: "#6D48DB" },  // violet
+    appointment:     { bg: "#E8ECFF", fg: "#5B6DFF" },  // blue
+    mandate_signed:  { bg: "#FBF0DC", fg: "#8C5A08" },  // amber
+    sold:            { bg: "#D8EEDF", fg: "#1F7D54" },  // dark green
+    // Terminal
+    lost:            { bg: "#FDE7E7", fg: "#C44343" },  // red
+  }[stageId] || { bg: "#F4F4F6", fg: "#6E6B64" };       // fallback = neutral
+}
+
+/* Price field differs by type — buyers declare a budget range, sellers
+   state an expected price. Both are pre-formatted strings with € suffix. */
+function leadPrice(lead) {
+  return lead.type === "seller" ? lead.expectedPrice : lead.budget;
+}
+
+/* Timeline likewise differs — buyer.timeline is purchase horizon,
+   seller.sellingTimeline is listing horizon. */
+function leadTimeline(lead) {
+  return lead.type === "seller" ? lead.sellingTimeline : lead.timeline;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1259,6 +1745,7 @@ const icon = {
 
   // nav
   home:        () => svg(`<path d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V10.5z"/>`),
+  key:         () => svg(`<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.6 12.3L21 2l-3 3"/><path d="M15 6l3 3"/>`),
   barChart:    () => svg(`<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>`),
   users:       () => svg(`<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>`),
   megaphone:   () => svg(`<path d="M3 11v2a4 4 0 004 4h1l5 4V3L8 7H7a4 4 0 00-4 4z"/><path d="M18 8v8"/><path d="M21 10v4"/>`),
@@ -1276,7 +1763,10 @@ const navGroups = [
   {
     label: "MAIN",
     items: [
-      { id: "leads",     label: "Leads",          icon: "home",      badge: "24" },
+      // Two Leads entries for the Phase 1–3 A/B comparison. Phase 4 collapses
+      // back to a single { id: "leads", label: "Leads" } after the winner is picked.
+      { id: "leads-a",   label: "Leads · A",      icon: "home",      badge: "24" },
+      { id: "leads-b",   label: "Leads · B",      icon: "home",      badge: "24" },
       { id: "dashboard", label: "Tableau de bord", icon: "barChart" },
       { id: "agents",    label: "Agents",         icon: "users" },
       { id: "campaigns", label: "Campagnes",      icon: "megaphone" },
@@ -1293,7 +1783,8 @@ const navGroups = [
 ];
 
 const routeTitles = {
-  leads: "Leads",
+  "leads-a": "Leads · A",
+  "leads-b": "Leads · B",
   dashboard: "Tableau de bord",
   agents: "Agents",
   campaigns: "Campagnes",
@@ -1547,9 +2038,309 @@ function renderTopbar() {
   `;
 }
 
-/* ───── Step-1 content placeholder ─────
-   The Leads route shows lead cards (stand-in until Step 2).
-   Other routes show a simple "à venir" placeholder to make routing feel real. */
+/* ───── Leads content (Phase 2 of Step 2) ─────
+   Route "leads-a" renders Variation A (this phase). Route "leads-b" stays
+   on the Phase 1 placeholder until Phase 3. renderLeadsContent(variant)
+   dispatches to one of the two below.
+
+   Every primitive below is data-driven off state + the helpers defined
+   earlier (stageLabel, stageColors, typeLabel, leadPrice, leadTimeline).
+   Phase 3 reuses all of them — only renderLeadsToggleA is A-specific. */
+
+/* Single source of truth for the filtered view. Returns the visible leads
+   plus the counts used by toggle pills, pipeline bar, and filter tabs.
+
+   Counts discipline (decided in Phase 2 planning):
+   - typeCounts    = raw totals per type, ignoring search. Powers the toggle
+                     so switching "Acquéreurs 24 / Vendeurs 3" reads honestly
+                     even mid-search.
+   - stageCounts   = per-stage counts within current type + search. Powers
+                     both the pipeline bar and the filter tabs. Counts stay
+                     stable as the user clicks between tabs.
+   - lostCount     = same scope as stageCounts but for the terminal "lost".
+   - totalFiltered = type + search filtered total; shown in "Tous" tab. */
+function computeLeadsView() {
+  const type     = state.leadType;
+  const pipeline = state.agency.pipeline[type] || [];
+  const search   = state.leadsSearch.trim().toLowerCase();
+
+  // Raw per-type totals (ignore search — toggle must read true volume).
+  const typeCounts = {
+    buyer:  state.leads.filter(l => l.type === "buyer").length,
+    seller: state.leads.filter(l => l.type === "seller").length,
+  };
+
+  // Apply type + search to get the set all tab/pipeline counts are based on.
+  const baseFiltered = state.leads.filter(l => {
+    if (l.type !== type) return false;
+    if (!search) return true;
+    const hay = `${l.name} ${l.email} ${l.zone || ""}`.toLowerCase();
+    return hay.includes(search);
+  });
+
+  // Count per stage id, plus terminal "lost".
+  const stageCounts = {};
+  pipeline.forEach(s => { stageCounts[s.id] = 0; });
+  let lostCount = 0;
+  baseFiltered.forEach(l => {
+    if (l.status === "lost") lostCount++;
+    else if (stageCounts[l.status] !== undefined) stageCounts[l.status]++;
+  });
+
+  // Apply filter tab on top of the base set.
+  const visible = baseFiltered.filter(l => {
+    if (state.filterTab === "all")  return true;
+    if (state.filterTab === "lost") return l.status === "lost";
+    return l.status === state.filterTab;
+  });
+
+  return {
+    visible,
+    pipeline,
+    type,
+    search,
+    counts: { stageCounts, lostCount, totalFiltered: baseFiltered.length, typeCounts },
+  };
+}
+
+/* Variation A toggle: promoted tabs with icon + label + count pill.
+   Count pill uses raw type totals (typeCounts), not search-filtered. */
+function renderLeadsToggleA(typeCounts) {
+  const tab = (typeKey, iconKey, label) => {
+    const active = state.leadType === typeKey;
+    return `
+      <button class="leads-toggle-a-tab"
+              role="tab"
+              aria-selected="${active}"
+              data-action="set-lead-type"
+              data-type="${typeKey}">
+        ${icon[iconKey]()}
+        <span>${label}</span>
+        <span class="leads-toggle-a-tab-count">${typeCounts[typeKey]}</span>
+      </button>
+    `;
+  };
+  return `
+    <div class="leads-toggle-a" role="tablist" aria-label="Type de lead">
+      ${tab("buyer",  "home", "Acquéreurs")}
+      ${tab("seller", "key",  "Vendeurs")}
+    </div>
+  `;
+}
+
+/* In-page search. Distinct from topbar search (topbar is hidden on Leads
+   routes via body[data-route=...] CSS). Input events delegated on document. */
+function renderLeadsSearch() {
+  const value = state.leadsSearch.replace(/"/g, "&quot;");
+  return `
+    <div class="leads-search">
+      ${icon.search()}
+      <input type="text"
+             placeholder="Rechercher par nom, email, zone…"
+             aria-label="Rechercher dans les leads"
+             value="${value}"
+             data-action="filter-search"
+             autocomplete="off" />
+    </div>
+  `;
+}
+
+/* Controls row between toggle and pipeline bar: meta on the left,
+   page-level search on the right. "N leads visibles" reflects current view. */
+function renderLeadsControlsRow(visibleCount) {
+  return `
+    <div class="leads-controls-row">
+      <div class="leads-meta">${visibleCount} lead${visibleCount === 1 ? "" : "s"} visible${visibleCount === 1 ? "" : "s"} · mis à jour il y a 2 min</div>
+      ${renderLeadsSearch()}
+    </div>
+  `;
+}
+
+/* Pipeline bar: one cell per stage in the active type's pipeline. Cells
+   are clickable — they shortcut to set-filter-tab so clicking a stage
+   highlights the matching tab below. Perdu and "all" are NOT in the bar —
+   the bar is the happy-path progression; terminal and aggregate live in
+   the filter tabs. */
+function renderPipelineBar(pipeline, stageCounts, activeTab) {
+  const cells = pipeline.map(stage => {
+    const c = stageColors(stage.id);
+    const n = stageCounts[stage.id] || 0;
+    const active = activeTab === stage.id;
+    return `
+      <button class="pipeline-cell"
+              data-action="set-filter-tab"
+              data-tab-id="${stage.id}"
+              aria-pressed="${active}"
+              style="--cell-bg:${c.bg};--cell-fg:${c.fg};">
+        <span class="pipeline-cell-label">${stage.label}</span>
+        <span class="pipeline-cell-count">${n}</span>
+      </button>
+    `;
+  }).join("");
+  return `<div class="pipeline-bar" role="group" aria-label="Répartition par étape du pipeline">${cells}</div>`;
+}
+
+/* Filter tabs: Tous · [pipeline stages] · Perdu. Each shows a count of
+   leads matching that bucket given current type + search (not current
+   tab). Active tab is highlighted. */
+function renderFilterTabs(pipeline, counts, activeTab) {
+  const tab = (id, label, count) => {
+    const active = activeTab === id;
+    return `
+      <button class="filter-tab"
+              role="tab"
+              aria-selected="${active}"
+              data-action="set-filter-tab"
+              data-tab-id="${id}">
+        <span class="filter-tab-label">${label}</span>
+        <span class="filter-tab-count">${count}</span>
+      </button>
+    `;
+  };
+  const stageTabs = pipeline.map(s => tab(s.id, s.label, counts.stageCounts[s.id] || 0)).join("");
+  return `
+    <div class="filter-tabs" role="tablist" aria-label="Filtrer par statut">
+      ${tab("all",  "Tous",  counts.totalFiltered)}
+      ${stageTabs}
+      ${tab("lost", "Perdu", counts.lostCount)}
+    </div>
+  `;
+}
+
+/* Score chip: Chaud / Tiède / Froid with a colored dot. */
+function renderScoreChip(score) {
+  const map = {
+    hot:  { label: "Chaud", mod: "hot"  },
+    warm: { label: "Tiède", mod: "warm" },
+    cold: { label: "Froid", mod: "cold" },
+  };
+  const m = map[score] || { label: score || "—", mod: "none" };
+  return `<span class="score-chip score-chip--${m.mod}"><span class="score-chip-dot"></span>${m.label}</span>`;
+}
+
+/* Source icon: compact branded tile. Pure CSS + initial letter — we avoid
+   shipping brand SVGs both for trademark hygiene and for a consistent
+   visual weight across sources at 18px. */
+function renderSourceIcon(source) {
+  const map = {
+    ig:     { char: "IG", title: "Instagram" },
+    fb:     { char: "f",  title: "Facebook" },
+    web:    { char: "◎",  title: "Site web" },
+    email:  { char: "@",  title: "Email" },
+    manual: { char: "+",  title: "Ajout manuel" },
+  };
+  const m = map[source] || { char: "?", title: source || "Inconnu" };
+  return `<span class="source-icon source-icon--${source}" title="${m.title}" aria-label="Source : ${m.title}">${m.char}</span>`;
+}
+
+/* Lead card: click target for the drawer. Richer than the v0.6.2 shell
+   card — previews roughly the data set the Step 2 Layer 2 table will
+   show. Structure: avatar · primary column (name + email) · meta column
+   (price + zone + timeline) · right cluster (source, score, status,
+   verified, agent, date). Wraps gracefully on narrow widths. */
+function renderLeadCard(lead) {
+  const selected  = state.drawer?.leadId === lead.id;
+  const sc        = stageColors(lead.status);
+  const statusLbl = stageLabel(lead.type, lead.status);
+  const agent     = lead.assignedAgentId != null
+    ? state.team.find(t => t.id === lead.assignedAgentId)
+    : null;
+  const verified  = lead.phoneVerified
+    ? `<span class="lead-verified" title="Téléphone vérifié" aria-label="Téléphone vérifié">${icon.check()}</span>`
+    : `<span class="lead-verified lead-verified--off" title="Non vérifié" aria-label="Non vérifié">—</span>`;
+  const agentCell = agent
+    ? `<span class="lead-agent" title="${agent.name}">${renderAvatar(agent.initials, agent.tone, 22)}</span>`
+    : `<span class="lead-agent lead-agent--none" title="Non assigné">—</span>`;
+
+  return `
+    <div class="lead-card"
+         data-action="open-drawer"
+         data-lead-id="${lead.id}"
+         data-selected="${selected}"
+         role="button" tabindex="0">
+      <div class="lead-card-identity">
+        ${renderAvatar(lead.initials, lead.tone, 36)}
+        <div class="lead-card-identity-text">
+          <div class="lead-card-name">${lead.name}</div>
+          <div class="lead-card-email">${lead.email}</div>
+        </div>
+      </div>
+      <div class="lead-card-meta">
+        <div class="lead-card-price">${leadPrice(lead)}</div>
+        <div class="lead-card-sub">${lead.zone} · ${leadTimeline(lead)}</div>
+      </div>
+      <div class="lead-card-signals">
+        ${renderSourceIcon(lead.source)}
+        ${renderScoreChip(lead.score)}
+        <span class="status-pill" style="background:${sc.bg};color:${sc.fg};">${statusLbl}</span>
+        ${verified}
+        ${agentCell}
+        <span class="lead-card-date">${lead.createdAt}</span>
+      </div>
+    </div>
+  `;
+}
+
+/* Empty states. kind="no-sellers" when type=seller and no seller leads
+   exist at all. kind="no-match" when filter + search returned nothing. */
+function renderLeadsEmptyState(kind) {
+  if (kind === "no-sellers") {
+    return `
+      <div class="leads-empty">
+        <div class="leads-empty-title">Aucun vendeur pour l'instant</div>
+        <div class="leads-empty-body">Les leads vendeurs arrivent via les formulaires Meta marqués « vendeur » ou par ajout manuel. Utilisez le bouton « + » en haut à droite pour saisir un vendeur.</div>
+      </div>
+    `;
+  }
+  return `
+    <div class="leads-empty">
+      <div class="leads-empty-title">Aucun résultat</div>
+      <div class="leads-empty-body">Aucun lead ne correspond à ce filtre. Changez d'onglet, effacez la recherche, ou essayez un autre critère.</div>
+    </div>
+  `;
+}
+
+/* List of lead cards OR an empty state card. */
+function renderLeadsList(view) {
+  // "No sellers anywhere" takes priority over filter-no-match.
+  if (view.type === "seller" && view.counts.typeCounts.seller === 0) {
+    return `<div class="lead-card-stack">${renderLeadsEmptyState("no-sellers")}</div>`;
+  }
+  if (view.visible.length === 0) {
+    return `<div class="lead-card-stack">${renderLeadsEmptyState("no-match")}</div>`;
+  }
+  return `<div class="lead-card-stack">${view.visible.map(renderLeadCard).join("")}</div>`;
+}
+
+/* Variation A page composition. */
+function renderLeadsContentA() {
+  const view = computeLeadsView();
+  return `
+    ${renderLeadsToggleA(view.counts.typeCounts)}
+    ${renderLeadsControlsRow(view.visible.length)}
+    ${renderPipelineBar(view.pipeline, view.counts.stageCounts, state.filterTab)}
+    ${renderFilterTabs(view.pipeline, view.counts, state.filterTab)}
+    ${renderLeadsList(view)}
+  `;
+}
+
+/* Variation B placeholder (still Phase 1 shape with chip bumped). */
+function renderLeadsContentB() {
+  const buyerCount  = state.leads.filter(l => l.type === "buyer").length;
+  const sellerCount = state.leads.filter(l => l.type === "seller").length;
+  return `
+    <div class="empty-state">
+      <div class="empty-state-left">
+        <div class="empty-state-title">Leads · B — en attente de Phase 3</div>
+        <div class="empty-state-body">
+          Route <code>${state.route}</code>. La variante B (toggle compact teinté par type) arrive en Phase 3 et réutilisera les primitives construites en Phase 2 sur Leads · A. Données en place : ${buyerCount} acquéreurs + ${sellerCount} vendeurs.
+        </div>
+      </div>
+      <div class="empty-state-chip">v0.7.0-p2</div>
+    </div>
+  `;
+}
+
 function renderContent() {
   return `
     <main class="content">
@@ -1559,24 +2350,9 @@ function renderContent() {
 }
 
 function renderRouteContent() {
-  if (state.route === "leads") return renderLeadsContent();
+  if (state.route === "leads-a") return renderLeadsContentA();
+  if (state.route === "leads-b") return renderLeadsContentB();
   return renderRouteComingSoon();
-}
-
-function renderLeadsContent() {
-  return `
-    <div class="empty-state">
-      <div class="empty-state-left">
-        <div class="empty-state-title">Shell — étape 1</div>
-        <div class="empty-state-body">
-          Sidebar + topbar + tiroir en place. Page active : <code>${state.route}</code>. Cliquez une carte pour ouvrir le tiroir. Le contenu réel arrive à l'étape 2 (table) et étape 3 (tiroir).
-        </div>
-      </div>
-      <div class="empty-state-chip">v0.6.2</div>
-    </div>
-    ${renderButtonDemo()}
-    ${renderLeadCards()}
-  `;
 }
 
 function renderRouteComingSoon() {
@@ -1595,58 +2371,9 @@ function renderRouteComingSoon() {
         <div class="empty-state-title">${title}</div>
         <div class="empty-state-body">Page à construire. Cette section sera implémentée après l'étape 2 (Leads) et l'étape 3 (tiroir).</div>
       </div>
-      <div class="empty-state-chip">v0.6.2</div>
+      <div class="empty-state-chip">v0.7.0-p2</div>
     </div>
   `;
-}
-
-function renderButtonDemo() {
-  // Temporary — removed in Step 2 when real Leads content arrives.
-  return `
-    <div class="scroll-test-card" style="cursor:default;padding:20px 24px;margin-top:16px;">
-      <div class="scroll-test-card-title">Système de boutons · v0.6 (Option B)</div>
-      <div class="scroll-test-card-body" style="margin-bottom:16px;">
-        Aperçu du système verrouillé. Toutes les actions textuelles du produit passent par <code style="font-family:var(--font-mono);font-size:12px;background:var(--surface-tint);padding:1px 5px;border-radius:4px;">renderButton()</code>.
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-        ${renderButton({ variant: "primary", label: "Envoyer template" })}
-        ${renderButton({ label: "Appeler" })}
-        ${renderButton({ variant: "ghost", label: "Annuler" })}
-        ${renderButton({ variant: "danger", label: "Supprimer" })}
-        ${renderButton({ variant: "primary", label: "Désactivé", disabled: true })}
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-        ${renderButton({ variant: "primary", size: "sm", label: "Small" })}
-        ${renderButton({ variant: "primary", label: "Default" })}
-        ${renderButton({ variant: "primary", size: "lg", label: "Large" })}
-      </div>
-    </div>
-  `;
-}
-
-function renderLeadCards() {
-  // Temporary stand-in for the real leads table.
-  // These cards are click targets so we can feel the drawer interaction in the shell stage.
-  const cards = state.leads.map(lead => {
-    const selected = state.drawer?.leadId === lead.id;
-    return `
-      <div class="scroll-test-card"
-           data-action="open-drawer"
-           data-lead-id="${lead.id}"
-           data-selected="${selected}"
-           role="button" tabindex="0">
-        <div style="display:flex;align-items:center;gap:14px;">
-          ${renderAvatar(lead.initials, lead.tone, 36)}
-          <div style="flex:1;min-width:0;">
-            <div class="scroll-test-card-title">${lead.name}</div>
-            <div class="scroll-test-card-body" style="margin-top:2px;">${lead.budget} · ${lead.city} · ${lead.type}</div>
-          </div>
-          <div class="drawer-badge" style="background:${badgeBg(lead.statusTone)};color:${badgeFg(lead.statusTone)};">${lead.status}</div>
-        </div>
-      </div>
-    `;
-  }).join("");
-  return `<div class="scroll-test">${cards}</div>`;
 }
 
 function isMobile() {
@@ -1654,26 +2381,12 @@ function isMobile() {
   return window.matchMedia("(max-width: 768px)").matches;
 }
 
-function badgeBg(tone) {
-  return {
-    green:  "#E4F4E9",
-    violet: "#EDE7FF",
-    blue:   "#E8ECFF",
-    amber:  "#FBF0DC",
-  }[tone] || "#F4F4F6";
-}
-function badgeFg(tone) {
-  return {
-    green:  "#2F9D6F",
-    violet: "#6D48DB",
-    blue:   "#5B6DFF",
-    amber:  "#8C5A08",
-  }[tone] || "#6E6B64";
-}
-
 function renderDrawer() {
   // Mounted conditionally — only renders the DOM when state.drawer is set.
   // Sliding animation handled by the data-open attribute on the container.
+  // Phase 1 note: not reachable via UI (no lead cards rendered). Kept working
+  // so devtools-driven opens don't throw, and Phase 2's card list immediately
+  // has a drawer to point at.
   if (!state.drawer) return "";
   const lead = state.leads.find(l => l.id === state.drawer.leadId);
   if (!lead) return "";
@@ -1684,15 +2397,16 @@ function renderDrawer() {
     { id: "activite",      label: "Activité" },
     { id: "notes",         label: "Notes" },
   ];
+  const statusC = stageColors(lead.status);
   return `
     <aside class="drawer" data-open="true" role="dialog" aria-label="Détails du prospect">
       <div class="drawer-header">
         <div class="drawer-header-text">
           <div class="drawer-name">
             ${lead.name}
-            <span class="drawer-badge" style="background:${badgeBg(lead.statusTone)};color:${badgeFg(lead.statusTone)};">${lead.status}</span>
+            <span class="drawer-badge" style="background:${statusC.bg};color:${statusC.fg};">${stageLabel(lead.type, lead.status)}</span>
           </div>
-          <div class="drawer-meta">${lead.budget} · ${lead.city} · ${lead.type} · ${lead.timeline}</div>
+          <div class="drawer-meta">${leadPrice(lead)} · ${lead.zone} · ${typeLabel(lead.type)} · ${leadTimeline(lead)}</div>
         </div>
         <button class="icon-btn drawer-close" data-action="close-drawer" aria-label="Fermer">
           ${isMobile() ? icon.arrowLeft() : icon.close()}
@@ -1746,6 +2460,12 @@ function render() {
   document.getElementById("app").innerHTML = renderApp();
   // Reflect drawer state on body so mobile CSS can lock scroll.
   document.body.setAttribute("data-drawer-open", state.drawer ? "true" : "false");
+  // Reflect active route on body. Used by route-scoped CSS (e.g. topbar
+  // search suppression on Leads routes). Kept inside render() so state and
+  // DOM stay in sync — same pragmatic pattern as the drawer attr above.
+  document.body.setAttribute("data-route", state.route);
+  // Sync browser tab title with current route.
+  document.title = `${routeTitles[state.route] || "Open House"} · Open House Prospects`;
 }
 
 document.addEventListener("click", (e) => {
@@ -1830,6 +2550,26 @@ document.addEventListener("click", (e) => {
       setState({ drawer: { ...state.drawer, tab } });
       break;
     }
+    case "set-lead-type": {
+      // Toggle Acquéreurs ↔ Vendeurs. Always reset filterTab to "all" — stage
+      // ids aren't guaranteed to exist across types (e.g. "visit_planned" is
+      // buyer-only), so carrying an active tab across a type flip risks an
+      // active filter that matches nothing.
+      const typeKey = target.getAttribute("data-type");
+      if (typeKey === state.leadType) break;  // no-op if clicking the active tab
+      setState({ leadType: typeKey, filterTab: "all" });
+      break;
+    }
+    case "set-filter-tab": {
+      const tabId = target.getAttribute("data-tab-id");
+      if (tabId === state.filterTab) break;
+      setState({ filterTab: tabId });
+      break;
+    }
+    case "filter-search":
+      // Bubbled by input events via the delegated input listener below.
+      // Mouse-clicking the input field also fires click; ignore here.
+      break;
   }
 });
 
@@ -1837,6 +2577,23 @@ document.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => {
   if (e.target.classList.contains("mobile-overlay")) {
     setState({ sidebarOpen: false });
+  }
+});
+
+/* Delegated input listener for the Leads-page search. State drives render,
+   so every keystroke re-renders the whole app — including the input. That
+   would lose focus and cursor position mid-typing. We capture both before
+   setState and restore them after it synchronously rebuilds the DOM. */
+document.addEventListener("input", (e) => {
+  const target = e.target.closest("[data-action='filter-search']");
+  if (!target) return;
+  const value     = target.value;
+  const cursorPos = target.selectionStart ?? value.length;
+  setState({ leadsSearch: value });
+  const next = document.querySelector("[data-action='filter-search']");
+  if (next) {
+    next.focus();
+    try { next.setSelectionRange(cursorPos, cursorPos); } catch (_) { /* no-op on unsupported inputs */ }
   }
 });
 
