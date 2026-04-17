@@ -1,839 +1,3235 @@
-<!DOCTYPE html>
+<!doctype html>
+<!--
+  Open House Prospects — v0.9.0
+  Step 2 Layer 2+ — Select mode + column sort shipped; table header stripped
+  Reference: docs/DESIGN_SPEC.md + Prodex Top Products card
+  Workflow: docs/DESIGN_PROTOCOL.md
+
+  v0.9.0 is a polish + capability push on the Layer 2 table. Four user
+  calls drove the changes:
+
+    1. Drop the icon beside "Liste des leads" — the title is unambiguous,
+       the icon was visual noise. Removed from renderLeadsTable + CSS.
+    2. Drop the "Mis à jour il y a 2 min / N leads filtrés par…" sub-meta
+       line. The stage card row up top already carries both signals
+       (active-card highlight = what's filtered, updated-time = toggle row).
+    3. Drop the Trier button. Column headers are now clickable and cycle
+       desc → asc → no-sort. Double-chevron indicator when idle, single
+       arrow when active. One column sortable at a time.
+    4. Add a Sélectionner button for bulk actions. Click → enter select
+       mode: leftmost checkbox column appears, header gets a "select all
+       visible" checkbox, rows get per-row checkboxes. Row click toggles
+       selection instead of opening drawer. When selectedLeadIds > 0, a
+       bulk action bar pins to the bottom of the card with Assigner /
+       Changer statut / Archiver / Supprimer buttons.
+
+  Select mode semantics:
+  - Selection PERSISTS across filter changes and type flip. "I picked
+    these to act on" beats "these happen to be visible right now". The
+    count on the bulk bar may exceed visible-row count — that's fine.
+  - "Select all visible" only adds currently-visible rows to the pick
+    set; existing off-screen picks stay picked.
+  - Clicking the active Sélectionner button (now labelled Annuler) exits
+    select mode AND clears the pick set.
+  - The X on the bulk bar clears the pick set but STAYS in select mode.
+  - ESC priority: drawer → select mode → user menu → agency switcher →
+    sidebar.
+
+  Bulk actions (Assigner, Changer statut, Archiver, Supprimer) are all
+  stubbed with alerts. Popovers and confirms ship as a follow-up, but the
+  mode + selection UX is live and real.
+
+  Sort implementation:
+  - state.leadsSort = null | { column, direction }.
+  - leadComparator(column) returns a (a, b) => number comparator per column.
+  - computeLeadsView applies sort LAST, after filter + search.
+  - Numeric fields parse digits out of formatted strings (leadPriceNumeric).
+  - Date is stored as ISO "2026-04-09" now (was "09 avr. 2026" in v0.8.0);
+    formatLeadDate(iso) renders the French short form for display.
+  - Score orders hot(3) > warm(2) > cold(1). Agent sorts by name with
+    empty string for unassigned.
+
+  State adds (v0.9.0):
+  - leadsSort:       null | { column, direction }
+  - selectionMode:   boolean
+  - selectedLeadIds: number[]
+
+  New click handlers: sort-column, toggle-select-mode, toggle-select-all,
+  clear-selection, bulk-assign, bulk-change-status, bulk-archive, bulk-delete.
+  The old open-drawer action is kept as a legacy alias; new rows emit
+  row-click which checks selectionMode and dispatches accordingly.
+
+  New icons: arrowUp, arrowDown, chevronsUpDown, trash, userCheck.
+
+  Deleted from v0.8.0:
+  - .leads-table-header-icon + .leads-table-meta CSS
+  - renderLeadsTable's icon + meta-line JSX
+  - The Trier button (data-action open-sort-panel deleted along with the
+    stub handler — it was only wired to an alert).
+  - Static column header labels (now rendered through renderColumnHeader).
+
+  What v0.9.0 does NOT include (deferred):
+  - Real popovers for Assigner / Changer statut / Filtrer (all stubs)
+  - A confirmation modal for Supprimer
+  - Indeterminate visual on the "select all" header checkbox when only
+    some visible rows are picked (skipped for MVP — checked or unchecked)
+  - Step 3 drawer bodies (Infos / Qualification / Activité / Notes)
+-->
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#050608">
-<title>Open House Prospects — Rapport d'avancement | studio AI2K</title>
-<meta name="robots" content="noindex,nofollow">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#050608;--brd:#161c28;--brdh:#222a3a;--t1:#eaecf0;--t2:#8a92a4;--t3:#454d60;--acc:#00ffaa;--adim:rgba(0,255,170,.1);--aglow:rgba(0,255,170,.04);--amb:#ffb84d;--ambdim:rgba(255,184,77,.1);--red:#ed4245;--blue:#3878ff;--mono:'Azeret Mono',monospace;--sans:'Outfit',sans-serif}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--t1);font-family:var(--sans);line-height:1.65;overflow:hidden;-webkit-font-smoothing:antialiased}
-@keyframes pageIn{to{opacity:1}}
-::selection{background:var(--acc);color:var(--bg)}
-canvas#P{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
-.W{position:relative;z-index:1}
-.C{max-width:1140px;margin:0 auto;padding:0 clamp(20px,5vw,64px)}
-section{padding:clamp(80px,12vh,140px) 0;position:relative}
-section:not(.hero)::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(0,255,170,.3),var(--brd) 40%,var(--brd));transform:scaleX(0);transform-origin:left;transition:transform 1.5s cubic-bezier(.16,1,.3,1) .3s}
-section:not(.hero):nth-of-type(even)::before{transform-origin:right;background:linear-gradient(270deg,rgba(0,255,170,.3),var(--brd) 40%,var(--brd))}
-section.vi::before{transform:scaleX(1)}
-@keyframes fi{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Open House Prospects</title>
 
-/* ═══ NAV ═══ */
-nav{position:fixed;top:0;left:0;right:0;z-index:500;height:64px;display:flex;align-items:center;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);background:rgba(5,6,8,.35);border-bottom:1px solid var(--brd);transition:background .3s,border-color .3s}
-nav.scrolled{background:rgba(5,6,8,.5)}
-nav .C{display:flex;justify-content:center;align-items:center;position:relative}
-.nav-left,.nav-right{display:flex;gap:24px;list-style:none;position:absolute;transition:opacity .3s;opacity:0;pointer-events:none}
-nav.scrolled .nav-left,nav.scrolled .nav-right{opacity:1;pointer-events:auto}
-.nav-left{right:calc(50% + 80px)}.nav-right{left:calc(50% + 80px)}
-.nav-left a,.nav-right a{font-family:var(--mono);font-size:11px;color:var(--t2);text-decoration:none;text-transform:uppercase;letter-spacing:1px;transition:color .2s;position:relative}
-.nav-left a::after,.nav-right a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:var(--acc);transition:width .3s cubic-bezier(.16,1,.3,1)}
-.nav-left a:hover,.nav-right a:hover{color:var(--acc)}
-.nav-left a:hover::after,.nav-right a:hover::after{width:100%}
-.nav-anchor{width:1px;height:1px}
-#fLogo{position:fixed;z-index:250;pointer-events:none;font-family:var(--sans);font-weight:900;color:var(--t1);line-height:1;white-space:nowrap;will-change:transform;transform-origin:top left;letter-spacing:-2px}
-#fLogo span{color:var(--acc)}
-.nav-pill{display:none;position:fixed;bottom:28px;right:20px;z-index:601;background:none;border:none;padding:12px;cursor:pointer}
-.nav-pill i{display:block;width:20px;height:1.5px;background:var(--acc);margin:4px 0;transition:all .3s}
-.nav-pill.active i:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
-.nav-pill.active i:nth-child(2){opacity:0}
-.nav-pill.active i:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
-.nl-mobile{position:fixed;top:64px;right:0;bottom:0;width:auto;padding:0 20px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:20px;z-index:600;list-style:none;pointer-events:none;background:rgba(5,6,8,0);backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);opacity:0;transition:opacity .3s,background .5s ease .4s,backdrop-filter .5s ease .4s,-webkit-backdrop-filter .5s ease .4s}
-.nl-mobile.op{opacity:1;pointer-events:auto}
-.nl-mobile.frosted{background:rgba(5,6,8,.05);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.nl-mobile li{opacity:0;transform:translateY(-60px) rotateX(90deg);filter:blur(12px);transition:opacity .6s ease,transform .7s cubic-bezier(.16,1,.3,1),filter .5s ease;pointer-events:none;transform-origin:top center;perspective:400px}
-.nl-mobile.op li{opacity:1;transform:translateY(0) rotateX(0deg);filter:blur(0);pointer-events:auto}
-.nl-mobile.op li:nth-child(1){transition-delay:0s}
-.nl-mobile.op li:nth-child(2){transition-delay:.06s}
-.nl-mobile.op li:nth-child(3){transition-delay:.12s}
-.nl-mobile.op li:nth-child(4){transition-delay:.18s}
-.nl-mobile.op li:nth-child(5){transition-delay:.24s}
-.nl-mobile.op li:nth-child(6){transition-delay:.30s}
-.nl-mobile a{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--t2);text-decoration:none;letter-spacing:-.2px;line-height:1.2;transition:color .2s;text-align:right}
-.nl-mobile a:hover{color:var(--acc)}
-.hero-ghost{font-family:var(--sans);font-size:clamp(40px,6.5vw,60px);font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:20px;visibility:hidden}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-/* ═══ TYPOGRAPHY ═══ */
-.slb{font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:4px;margin-bottom:20px}
-.st{font-size:clamp(30px,4.5vw,48px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:20px}
-.st em{font-style:normal;color:var(--acc)}
-.ss{font-size:16px;color:var(--t2);max-width:560px;line-height:1.8}
-.si{font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--adim);border:1px solid rgba(0,255,170,.15);display:inline-block;padding:5px 14px;margin-bottom:24px;letter-spacing:1.5px;text-transform:uppercase}
+  <style>
+  /* ═══════════════════════════════════════════════════════════════
+     DESIGN TOKENS — single source of truth. Every color, radius,
+     shadow, font-size lives here. No magic numbers below this block.
+     ═══════════════════════════════════════════════════════════════ */
+  :root {
+    /* Neutrals — cool palette (locked) */
+    --frame:          #F5F5F7;
+    --sidebar-bg:     #FAFAFB;
+    --panel:          #FFFFFF;
+    --surface-tint:   #F4F4F6;  /* general tint surface */
+    --hover-warm:     #EFEFF2;  /* nav hover (name retained from warm era — it's just "hover") */
+    --active-warm:    #E7E7EC;  /* nav active */
+    --row-hover:      #FAFAFB;
 
-/* ═══ HERO ═══ */
-.hero{min-height:100vh;display:flex;align-items:center;position:relative;padding-top:60px}
-.hal{position:absolute;top:0;left:50%;width:1px;height:40vh;background:linear-gradient(180deg,var(--acc),transparent);opacity:.15}
-.hc{position:relative;z-index:2}
-.he{font-family:var(--mono);font-size:12px;color:var(--t3);letter-spacing:3px;text-transform:uppercase;margin-bottom:28px;opacity:0;animation:fi .8s ease forwards .3s}
-.hero-headline{font-size:clamp(30px,5vw,58px);font-weight:800;line-height:1.08;letter-spacing:-2px;margin-bottom:28px;opacity:0;animation:fi .8s ease forwards .4s}
-.hero-headline em{font-style:normal;color:var(--acc);position:relative}
-.hero-headline em::after{content:'';position:absolute;bottom:2px;left:0;right:0;height:3px;background:var(--acc);opacity:.3}
-.hs{font-size:clamp(16px,2vw,20px);color:var(--t2);max-width:540px;line-height:1.75;margin-bottom:48px;opacity:0;animation:fi .8s ease forwards .5s}
-.hero-meta{display:flex;gap:32px;opacity:0;animation:fi .8s ease forwards .7s}
-.hero-meta-item{display:flex;flex-direction:column;gap:4px}
-.hero-meta-item .val{font-family:var(--sans);font-size:28px;font-weight:800;color:var(--t1);letter-spacing:-1px}
-.hero-meta-item .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px}
-.hcta{display:flex;gap:24px;align-items:center;margin-top:32px;opacity:0;animation:fi .8s ease forwards .9s}
-.hcta a{font-family:var(--mono);font-size:12px;text-decoration:none;letter-spacing:.8px;text-transform:uppercase;transition:color .3s;color:var(--t3)}
-.hcta a:hover{color:var(--acc)}
-.sh{position:absolute;bottom:40px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;animation:fi 1s ease forwards 1.2s}
-.sh>span{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:2px;text-transform:uppercase}
-.shl{width:1px;height:40px;background:linear-gradient(180deg,var(--acc),transparent);animation:scrollPulse 2s ease infinite}
-@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.3)}}
+    --border-subtle:  #ECECEF;
+    --border-divider: #E6E6EA;
+    --border-strong:  #D8D8DE;  /* NEW — visible borders (icon buttons, user menu, search) */
 
-/* ═══ MODULE MAP ═══ */
-.mod-section{margin-bottom:40px}
-.mod-section-label{font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:3px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--brd)}
-.mod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.mod-card{background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 22px;transition:background .6s,border-color .6s,box-shadow .6s;position:relative;overflow:hidden}
-.mod-card:hover{background:rgba(15,30,25,.65);border-color:rgba(0,255,170,.1);box-shadow:0 0 60px rgba(0,255,170,.04) inset}
-.mod-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
-.mod-card-name{font-size:16px;font-weight:700;letter-spacing:-.3px}
-.mod-badge{font-family:var(--mono);font-size:9px;font-weight:600;padding:3px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;flex-shrink:0}
-.mod-badge.live{background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15)}
-.mod-badge.proto{background:var(--ambdim);color:var(--amb);border:1px solid rgba(255,184,77,.15)}
-.mod-badge.planned{background:rgba(255,255,255,.03);color:var(--t3);border:1px solid rgba(255,255,255,.06)}
-.mod-card-desc{font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:14px}
-.mod-card-link{font-family:var(--mono);font-size:11px;color:var(--acc);text-decoration:none;letter-spacing:.5px;transition:opacity .2s;display:inline-flex;align-items:center;gap:6px}
-.mod-card-link:hover{opacity:.7}
-.mod-card.is-planned{opacity:.5}
-.mod-card.is-planned:hover{opacity:.7}
-.mod-priority{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;background:rgba(237,66,69,.08);color:var(--red);border:1px solid rgba(237,66,69,.15);margin-left:6px}
-.mod-priority svg{width:12px;height:12px;flex-shrink:0}
-.mod-essential{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;background:rgba(56,120,255,.1);color:#3878ff;border:1px solid rgba(56,120,255,.2);margin-left:6px}
-.mod-essential svg{width:12px;height:12px;flex-shrink:0}
-.mod-fb-count{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12);margin-left:6px;display:inline-flex;align-items:center;gap:4px}
-.mod-fb-count svg{width:10px;height:10px;stroke:var(--acc);fill:none;stroke-width:2}
-.mod-future-label{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;background:rgba(255,255,255,.03);color:var(--t3);border:1px solid rgba(255,255,255,.06);margin-left:6px}
+    --text-primary:   #1C1C1F;
+    --text-body:      #3D3A35;
+    --text-secondary: #6E6B64;
+    --text-muted:     #9B9892;
 
-/* ═══ ROADMAP PIPELINE ═══ */
-.pipeline{margin-top:64px;position:relative}
-.pipe-line{position:absolute;top:24px;left:4%;right:4%;height:1px;background:var(--brd)}
-.pipe-line-fill{position:absolute;top:24px;left:4%;right:4%;height:1px;background:var(--acc);transform:scaleX(0);transform-origin:left;transition:transform 1.2s cubic-bezier(.16,1,.3,1)}
-.pipeline.vis .pipe-line-fill{transform:scaleX(var(--pipe-fill,0))}
-.pipe-steps{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;position:relative;z-index:2}
-.pipe-step{text-align:center}
-.pipe-dot{width:48px;height:48px;border-radius:50%;border:2px solid var(--brd);background:rgba(5,6,8,.8);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t3);transition:all .4s}
-.pipe-step:hover .pipe-dot{border-color:var(--acc);color:var(--acc);box-shadow:0 0 20px var(--adim),0 0 40px var(--aglow)}
-.pipe-step.done .pipe-dot{border-color:var(--acc);color:var(--acc)}
-.pipe-step.active .pipe-dot{border-color:var(--amb);color:var(--amb);box-shadow:0 0 20px var(--ambdim)}
-.pipe-step h3{font-size:13px;font-weight:700;margin-bottom:4px;letter-spacing:-.2px}
-.pipe-step p{font-size:11px;color:var(--t2);line-height:1.5;max-width:140px;margin:0 auto}
-.pipe-step.done h3{color:var(--acc)}
-.pipe-step.active h3{color:var(--amb)}
-.fly-steps .pipe-step{opacity:0;transform:translateX(-50px);transition:opacity .5s ease,transform .5s cubic-bezier(.16,1,.3,1)}
-.fly-steps.vis .pipe-step{opacity:1;transform:translateX(0)}
-.fly-steps.vis .pipe-step:nth-child(1){transition-delay:.1s}
-.fly-steps.vis .pipe-step:nth-child(2){transition-delay:.18s}
-.fly-steps.vis .pipe-step:nth-child(3){transition-delay:.26s}
-.fly-steps.vis .pipe-step:nth-child(4){transition-delay:.34s}
-.fly-steps.vis .pipe-step:nth-child(5){transition-delay:.42s}
-.fly-steps.vis .pipe-step:nth-child(6){transition-delay:.50s}
-.fly-steps.vis .pipe-step:nth-child(7){transition-delay:.58s}
-.fly-steps.vis .pipe-step:nth-child(8){transition-delay:.66s}
+    /* Accents */
+    --accent-blue:    #5B6DFF;
+    --accent-green:   #4CC38A;
+    --accent-red:     #FF6B6B;
+    --accent-amber:   #F5B94C;
 
-/* ═══ CHANGELOG ═══ */
-.changelog{margin-top:64px;display:flex;flex-direction:column;gap:0}
-.cl-entry{display:grid;grid-template-columns:140px 1fr;gap:24px;padding:20px 0;border-bottom:1px solid var(--brd);transition:background .3s}
-.cl-entry:first-child{border-top:1px solid var(--brd)}
-.cl-date{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.5px;padding-top:3px}
-.cl-content h4{font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-.2px}
-.cl-content p{font-size:14px;color:var(--t2);line-height:1.7}
-.cl-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;margin-right:6px}
-.cl-tag.new{background:var(--adim);color:var(--acc);border:1px solid rgba(0,255,170,.12)}
-.cl-tag.update{background:rgba(88,101,242,.08);color:#7c85f2;border:1px solid rgba(88,101,242,.12)}
-.cl-tag.fix{background:rgba(237,66,69,.06);color:#f06467;border:1px solid rgba(237,66,69,.1)}
+    /* Accent-soft (badge tints) */
+    --blue-soft:   #E8ECFF;
+    --green-soft:  #E4F4E9;
+    --red-soft:    #FDE7E7;
+    --amber-soft:  #FBF0DC;
+    --violet-soft: #EDE7FF;  /* for "En cours" status pill */
 
-/* ═══ FEEDBACK ═══ */
-.feedback-box{margin-top:64px;background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:clamp(40px,5vw,72px);position:relative;overflow:hidden;--px:50%;--py:50%}
-.feedback-box::before{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,170,.08),transparent 70%);left:var(--px);top:var(--py);transform:translate(-50%,-50%);opacity:0;transition:opacity .5s;pointer-events:none}
-.feedback-box:hover::before{opacity:1}
-.feedback-box:hover{border-color:rgba(0,255,170,.08)}
-.feedback-box h3{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-.8px;margin-bottom:8px}
-.feedback-box>p{font-size:14px;color:var(--t2);line-height:1.75;max-width:480px;margin-bottom:28px}
-.fb-form{display:flex;flex-direction:column;gap:12px;max-width:600px}
-.fb-input{font-family:var(--sans);font-size:14px;color:var(--t1);background:rgba(255,255,255,.04);border:1px solid var(--brd);border-radius:4px;padding:12px 16px;outline:none;transition:border-color .3s;resize:none}
-.fb-input:focus{border-color:rgba(0,255,170,.3)}
-.fb-input::placeholder{color:var(--t3)}
-.fb-row{display:flex;gap:12px}
-.fb-row .fb-input{flex:1}
-.btn{font-family:var(--mono);font-size:12px;padding:14px 28px;text-decoration:none;letter-spacing:.8px;text-transform:uppercase;transition:all .4s;cursor:pointer;display:inline-block;background:transparent;color:var(--t2);border:1px solid var(--brd);position:relative;overflow:hidden;z-index:1}
-.btn::before{content:'';position:absolute;top:0;left:0;width:0;height:100%;background:var(--acc);z-index:-1;transition:width .4s cubic-bezier(.16,1,.3,1)}
-.btn:hover{border-color:var(--acc);color:var(--bg)}
-.btn:hover::before{width:100%}
-.fb-success{display:none;font-family:var(--mono);font-size:12px;color:var(--acc);letter-spacing:.5px;margin-top:8px}
+    /* Radius */
+    --r-xs: 6px;
+    --r-sm: 10px;
+    --r-md: 14px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+    --r-pill: 999px;
 
-/* ═══ FEEDBACK FEED ═══ */
-.fb-feed{margin-bottom:48px}
-.fb-feed-empty{font-family:var(--mono);font-size:12px;color:var(--t3);letter-spacing:.5px;padding:24px 0}
-.fb-feed-list{display:flex;flex-direction:column;gap:0}
-.fb-entry{display:grid;grid-template-columns:140px 1fr;gap:24px;padding:20px 0;border-bottom:1px solid var(--brd)}
-.fb-entry:first-child{border-top:1px solid var(--brd)}
-.fb-entry-meta{display:flex;flex-direction:column;gap:4px;padding-top:2px}
-.fb-entry-date{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.5px}
-.fb-entry-author{font-size:13px;font-weight:600;color:var(--t2)}
-.fb-entry-body{display:flex;flex-direction:column;gap:8px}
-.fb-entry-tags{display:flex;gap:6px;flex-wrap:wrap}
-.fb-entry-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px}
-.fb-entry-tag.mod{background:var(--adim);color:var(--acc);border:1px solid rgba(0,255,170,.12)}
-.fb-entry-tag.src{background:rgba(255,255,255,.03);color:var(--t3);border:1px solid rgba(255,255,255,.06)}
-.fb-entry-message{font-size:14px;color:var(--t2);line-height:1.7}
-.fb-feed-count{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.5px;margin-bottom:16px}
+    /* Shadow */
+    --shadow-none:   none;
+    --shadow-xs:     0 1px 2px rgba(0,0,0,0.02);
+    --shadow-sm:     0 2px 8px rgba(0,0,0,0.03);
+    --shadow-md:     0 8px 24px rgba(0,0,0,0.04);
+    --shadow-shell:  0 8px 32px rgba(0,0,0,0.04);
+    --shadow-drawer: -12px 0 40px rgba(0,0,0,0.08);
 
-/* ═══ MORE INDICATOR ═══ */
-.more-indicator{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:40px;cursor:pointer}
-.more-indicator span{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3)}
+    /* Type */
+    --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-/* ═══ LOGIN GATE ═══ */
-.pw-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10000;transition:opacity .4s}
-.pw-modal{position:relative;z-index:1;background:rgba(10,14,20,.3);border:1px solid rgba(0,255,170,.1);border-radius:20px;padding:32px 28px;width:320px;box-shadow:0 32px 80px rgba(0,0,0,.2);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);text-align:center}
-.pw-studio-logo{font-family:var(--sans);font-weight:900;font-size:14px;letter-spacing:-.5px;color:rgba(255,255,255,.3);margin-bottom:20px}
-.pw-studio-logo span{color:rgba(0,255,170,.4)}
-.pw-modal-icon{width:72px;height:72px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(0,255,170,.12),rgba(0,255,170,.04));border:1px solid rgba(0,255,170,.15)}
-.pw-modal-icon svg{width:32px;height:32px;stroke:var(--acc);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.pw-modal-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
-.pw-modal-sub{font-size:12px;color:var(--t2);margin-bottom:24px}
-.pw-field{width:100%;padding:13px 16px;background:linear-gradient(135deg,rgba(0,255,170,.06),rgba(0,255,170,.03));border:1px solid rgba(0,255,170,.15);border-radius:10px;margin-bottom:10px;cursor:text;position:relative;min-height:46px;display:flex;align-items:center;transition:border-color .2s,box-shadow .2s}
-.pw-field:hover{border-color:rgba(0,255,170,.4);box-shadow:0 0 16px rgba(0,255,170,.1)}
-.pw-dots{color:#fff;font-size:18px;letter-spacing:4px;line-height:1}
-.pw-placeholder{color:var(--t3);font-size:14px}
-.pw-error{font-size:11px;color:#ff4d4d;margin-bottom:8px;min-height:14px;text-align:left}
-.pw-btn{-webkit-appearance:none;appearance:none;width:100%;padding:14px;background:rgba(10,14,20,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#fff;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.5px;transition:border-color .2s,box-shadow .2s}
-.pw-btn:hover{border-color:rgba(0,255,170,.4);box-shadow:0 0 16px rgba(0,255,170,.1)}
-.pw-footer{margin-top:16px;font-size:.65em;color:rgba(255,255,255,.25)}
-.pw-footer a{color:rgba(255,255,255,.25);text-decoration:none;transition:color .2s}
-.pw-footer a:hover{color:var(--acc)}
-@keyframes pwShake{0%{transform:translateX(0)}15%{transform:translateX(-4px)}30%{transform:translateX(4px)}45%{transform:translateX(-3px)}60%{transform:translateX(3px)}75%{transform:translateX(-1px)}100%{transform:translateX(0)}}
+    /* Layout */
+    --sidebar-w: 260px;
+    --header-h: 88px;
+    --shell-pad: 24px;
+  }
 
-/* ═══ REVEALS ═══ */
-.rv{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
-.rv.vi{opacity:1;transform:translateY(0)}
-.rv-stagger>*{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}
-.rv-stagger.vi>*:nth-child(1){opacity:1;transform:translateY(0);transition-delay:.05s}
-.rv-stagger.vi>*:nth-child(2){opacity:1;transform:translateY(0);transition-delay:.15s}
-.rv-stagger.vi>*:nth-child(3){opacity:1;transform:translateY(0);transition-delay:.25s}
-.rv-stagger.vi>*:nth-child(4){opacity:1;transform:translateY(0);transition-delay:.35s}
+  /* Cool palette is now the default — warm A/B toggle removed at design lock */
 
-/* ═══ FOOTER ═══ */
-footer{border-top:1px solid var(--brd);padding:36px 0}
-.fr{display:flex;justify-content:space-between;align-items:center}
-.fr p{font-family:var(--mono);font-size:10px;color:var(--t3);letter-spacing:.5px}
-.fr a{font-family:var(--mono);font-size:10px;color:var(--t3);letter-spacing:.5px;text-decoration:none;transition:color .2s}
-.fr a:hover{color:var(--acc)}
+  /* ═══════════════════════════════════════════════════════════════
+     BASE
+     ═══════════════════════════════════════════════════════════════ */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--frame);
+    color: var(--text-body);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  input, select { font: inherit; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-divider); border-radius: var(--r-pill); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ═══ RESPONSIVE ═══ */
-@media(max-width:960px){
-  section{padding:clamp(56px,10vh,100px) 0}
-  nav{background:rgba(5,6,8,.95)}
-  .mod-grid{grid-template-columns:1fr 1fr}
-  .pipe-steps{grid-template-columns:repeat(4,1fr);gap:16px}.pipe-line,.pipe-line-fill{display:none}
-  .cl-entry{grid-template-columns:1fr}.cl-date{padding-bottom:4px}
-  .hero-meta{flex-wrap:wrap;gap:24px}
-  .nav-left,.nav-right{display:none}.nav-pill{display:block}
-  .st{font-size:clamp(26px,6vw,40px)}
-}
-@media(max-width:680px){
-  section{padding:clamp(48px,8vh,80px) 0}
-  .mod-grid{grid-template-columns:1fr}
-  .pipe-steps{grid-template-columns:repeat(3,1fr)}.pipe-dot{width:40px;height:40px;font-size:9px}.pipe-step h3{font-size:12px}.pipe-step p{font-size:10px}
-  .hero-ghost{font-size:clamp(34px,10vw,48px)}.hero-headline{font-size:clamp(26px,7vw,40px)}.hs{font-size:15px}
-  .feedback-box{padding:28px 22px}
-  .fb-entry{grid-template-columns:1fr}.fb-entry-meta{flex-direction:row;gap:12px;padding-bottom:4px}
-  .fb-row{flex-direction:column}
-}
-</style>
+  /* ═══════════════════════════════════════════════════════════════
+     APP SHELL
+     ═══════════════════════════════════════════════════════════════ */
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    min-height: 100vh;
+    background: var(--frame);
+  }
+
+  /* ───────── Sidebar ───────── */
+  .sidebar {
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-divider);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    margin-bottom: 16px;
+  }
+  .brand-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #5B6DFF 0%, #9B7CFF 100%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 3px;
+    padding: 6px;
+  }
+  .brand-mark span {
+    background: rgba(255,255,255,0.9);
+    border-radius: 2px;
+  }
+  .brand-mark span:nth-child(2) { background: rgba(255,255,255,0.6); }
+  .brand-mark span:nth-child(3) { background: rgba(255,255,255,0.7); }
+  .brand-mark span:nth-child(4) { background: rgba(255,255,255,0.95); }
+
+  .brand-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+
+  /* Agency + city switcher */
+  .agency-switcher {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .agency-switcher:hover { background: var(--hover-warm); }
+  .agency-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1C1C1F;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .agency-avatar[data-variant="logo"] {
+    background: #FFFFFF;
+    border: 1px solid var(--border-strong);
+    padding: 4px;
+  }
+  .agency-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .agency-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.2;
+  }
+  .agency-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .agency-city {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .agency-city svg {
+    width: 11px;
+    height: 11px;
+    display: inline-block;
+    vertical-align: -1px;
+    margin-right: 3px;
+    stroke-width: 2;
+    color: var(--text-muted);
+  }
+  .agency-switcher > svg { color: var(--text-muted); flex-shrink: 0; transition: transform 160ms ease; }
+  .agency-switcher[aria-expanded="true"] > svg { transform: rotate(180deg); }
+
+  .agency-switcher-wrap {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .agency-switcher-wrap .agency-switcher { margin-bottom: 0; }
+
+  .agency-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    box-shadow: var(--shadow-md);
+    padding: 6px;
+    z-index: 40;
+  }
+  .agency-menu-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 6px 10px 4px;
+  }
+  .agency-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r-xs);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background 100ms ease;
+  }
+  .agency-menu-item svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    stroke-width: 2;
+  }
+  .agency-menu-item span {
+    flex: 1;
+  }
+  .agency-menu-item:hover { background: var(--hover-warm); }
+  .agency-menu-item[data-active="true"] {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .agency-menu-item[data-active="true"] svg:last-child {
+    color: var(--accent-blue);
+  }
+
+  /* Section label */
+  .nav-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.8px;
+    padding: 0 10px;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+  }
+  .nav-group + .nav-group { margin-top: 20px; }
+
+  /* Nav items */
+  .nav-list { list-style: none; padding: 0; margin: 0; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 10px;
+    border-radius: var(--r-sm);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background 120ms ease;
+    position: relative;
+  }
+  .nav-item svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    stroke-width: 1.5;
+  }
+  .nav-item-label {
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+  }
+  .nav-item-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--panel);
+    padding: 2px 7px;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--border-subtle);
+  }
+  .nav-item:hover { background: var(--hover-warm); }
+  .nav-item[data-active="true"] {
+    background: var(--active-warm);
+  }
+  .nav-item[data-active="true"] .nav-item-label { font-weight: 600; color: var(--text-primary); }
+  .nav-item[data-active="true"] svg { color: var(--text-primary); }
+
+  /* Sidebar footer */
+  .sidebar-spacer { flex: 1; }
+
+  .sidebar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    height: 40px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  .sidebar-row svg { width: 16px; height: 16px; stroke-width: 1.5; }
+  .sidebar-row-label { flex: 1; }
+
+  /* Toggle switch */
+  .switch {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    border-radius: var(--r-pill);
+    background: var(--border-divider);
+    cursor: pointer;
+    transition: background 140ms ease;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: var(--shadow-xs);
+    transition: transform 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .switch[data-on="true"] { background: var(--text-primary); }
+  .switch[data-on="true"]::after { transform: translateX(14px); }
+
+  /* Help / info card at bottom */
+  .sidebar-card {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: var(--r-md);
+    background: var(--blue-soft);
+    border: 1px solid rgba(91, 109, 255, 0.12);
+  }
+  .sidebar-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .sidebar-card-body {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  /* Sidebar feedback-card CTA.
+     Intentionally NOT using .btn — this is tuned to the card's compact container.
+     Generic buttons (drawer, forms, filters) use the .btn system. */
+  .sidebar-card-cta {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--text-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--r-sm);
+    text-align: center;
+    transition: background 120ms ease;
+  }
+  .sidebar-card-cta:hover { background: #000; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     MAIN CONTENT
+     ═══════════════════════════════════════════════════════════════ */
+  .main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ───────── Top header ───────── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: var(--header-h);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background: var(--frame);
+    transition: box-shadow 180ms ease;
+  }
+  .topbar[data-scrolled="true"] {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.4px;
+    margin: 0;
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .topbar-actions-icons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Avatar stack */
+  .avatar-stack {
+    display: flex;
+    align-items: center;
+  }
+  .avatar-stack .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--frame);
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    margin-left: -10px;
+  }
+  .avatar-stack .avatar:first-child { margin-left: 0; }
+  .avatar-more {
+    margin-left: -10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid var(--frame);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* Icon button */
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    color: var(--text-body);
+    display: grid;
+    place-items: center;
+    position: relative;
+    box-shadow: var(--shadow-xs);
+    transition: all 120ms ease;
+  }
+  .icon-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+  }
+  .icon-btn svg { width: 18px; height: 18px; stroke-width: 2; }
+
+  .notif-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: var(--r-pill);
+    background: var(--accent-red);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--frame);
+    line-height: 1;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     BUTTON SYSTEM (Option B — Bordered clean)
+     Locked in Step 1. Every clickable text-action in the product
+     uses these classes. Icon-only buttons use .icon-btn instead.
+     ═══════════════════════════════════════════════════════════════ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: var(--shadow-xs);
+    transition: all 120ms ease;
+  }
+  .btn svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 1.75;
+    flex-shrink: 0;
+  }
+  .btn:hover {
+    border-color: var(--text-muted);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn:active {
+    transform: translateY(0.5px);
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* Variants */
+  .btn--primary {
+    background: var(--text-primary);
+    color: #fff;
+    border-color: var(--text-primary);
+    font-weight: 600;
+  }
+  .btn--primary:hover {
+    background: #000;
+    border-color: #000;
+  }
+  .btn--ghost {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .btn--ghost:hover {
+    background: var(--surface-tint);
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .btn--danger {
+    border-color: #F5BDBD;
+    color: #C63636;
+  }
+  .btn--danger:hover {
+    background: #FDE7E7;
+    border-color: #E89898;
+  }
+
+  /* Sizes */
+  .btn--sm {
+    padding: 6px 11px;
+    font-size: 12px;
+  }
+  .btn--sm svg { width: 13px; height: 13px; }
+  .btn--lg {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  .btn--lg svg { width: 16px; height: 16px; }
+
+  /* Full-width (for drawer footers, mobile actions, forms) */
+  .btn--block { width: 100%; }
+
+  /* Search */
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 320px;
+    height: 40px;
+    padding: 0 16px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-pill);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .search:focus-within {
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 3px rgba(91, 109, 255, 0.08);
+  }
+  .search svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-body);
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+  .search input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+  .search input::placeholder { color: var(--text-muted); }
+
+  /* Topbar search suppression on the Leads route.
+     The topbar search is reserved for future global search. On Leads, the
+     page-level search IS the search — so the topbar one hides to avoid two
+     competing affordances. Non-Leads routes keep it visible.
+     Uses body[data-route] which is set in render(). Base rule, not media-query. */
+  body[data-route="leads"] .topbar .search { display: none; }
+
+  /* User menu */
+  .user-menu-wrap {
+    position: relative;
+  }
+  .user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border-radius: var(--r-pill);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-xs);
+    transition: all 120ms ease;
+  }
+  .user-menu:hover {
+    border-color: var(--text-muted);
+    box-shadow: var(--shadow-sm);
+  }
+  .user-menu[aria-expanded="true"] {
+    border-color: var(--text-muted);
+    background: var(--surface-tint);
+  }
+  .user-menu .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    display: grid;
+    place-items: center;
+  }
+  .user-menu svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-secondary);
+    transition: transform 160ms ease;
+  }
+  .user-menu[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+  /* User menu dropdown */
+  .user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 260px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-md);
+    padding: 6px;
+    z-index: 40;
+  }
+  .user-menu-identity {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 10px 12px;
+  }
+  .user-menu-identity .avatar {
+    flex-shrink: 0;
+  }
+  .user-menu-identity-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.3;
+  }
+  .user-menu-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-menu-email {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-menu-role {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .user-menu-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 4px 2px;
+  }
+  .user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r-xs);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background 100ms ease;
+  }
+  .user-menu-item svg {
+    width: 15px;
+    height: 15px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    stroke-width: 1.7;
+  }
+  .user-menu-item:hover { background: var(--hover-warm); }
+  .user-menu-item--danger {
+    color: var(--accent-red);
+  }
+  .user-menu-item--danger svg {
+    color: var(--accent-red);
+  }
+  .user-menu-item--danger:hover {
+    background: var(--red-soft);
+  }
+
+  /* ───────── Content area ───────── */
+  .content {
+    flex: 1;
+    padding: 0 32px 32px;
+    min-height: 0;
+  }
+
+  /* Step-1 empty state (will be removed in Step 2) */
+  .empty-state {
+    margin-top: 4px;
+    padding: 24px 28px;
+    border: 1px dashed var(--border-divider);
+    border-radius: var(--r-md);
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .empty-state-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .empty-state-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .empty-state-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .empty-state code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 1px 5px;
+    background: var(--surface-tint);
+    border-radius: var(--r-xs);
+    color: var(--text-body);
+  }
+  .empty-state-chip {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 4px 10px;
+    background: var(--surface-tint);
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     RESPONSIVE rules live at the bottom of the stylesheet so they
+     override all base rules regardless of base-rule source order.
+     See end of this <style> block.
+     ═══════════════════════════════════════════════════════════════ */
+
+  .hamburger {
+    display: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-sm);
+    place-items: center;
+    color: var(--text-secondary);
+  }
+  .hamburger:hover { background: var(--surface-tint); color: var(--text-primary); }
+  .hamburger svg { width: 20px; height: 20px; stroke-width: 1.5; }
+
+  .mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(28,28,31,0.3);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  .mobile-overlay[data-visible="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DRAWER (lead detail panel)
+     Desktop: below-topbar, respects-sidebar, 480px, no backdrop.
+     Mobile:  full-screen takeover with back arrow.
+     Structure per DESIGN_SPEC.md §17 drawer-boundaries decision.
+     Contents are placeholder — real form lives in Step 3.
+     ═══════════════════════════════════════════════════════════════ */
+  .drawer {
+    position: fixed;
+    top: var(--header-h);
+    right: 0;
+    bottom: 0;
+    width: 480px;
+    background: var(--panel);
+    border-left: 1px solid var(--border-divider);
+    box-shadow: -16px 0 48px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+    transform: translateX(100%);
+    transition: transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .drawer[data-open="true"] {
+    transform: translateX(0);
+  }
+
+  .drawer-header {
+    padding: 20px 24px 40px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  /* Close button on desktop uses the same .icon-btn style as the topbar + and bell.
+     Positioned by DOM order — it comes AFTER the header-text in the flex row,
+     so it sits on the right. On mobile it's overridden to be a top-left back arrow. */
+  .drawer-close {
+    flex-shrink: 0;
+    order: 2;         /* force to the right end of the flex row on desktop */
+  }
+  .drawer-header-text {
+    flex: 1;
+    min-width: 0;
+    order: 1;
+  }
+  .drawer-name {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .drawer-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #E4F4E9;
+    color: #2F9D6F;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: var(--r-pill);
+  }
+  .drawer-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Source chip — lead origin indicator in the drawer header.
+     Small circular badge containing a 14px stroke icon. Monochrome
+     on all sources to stay consistent with the app's Lucide-style
+     icon set (see icon.instagram / facebook / globe / mail / userPlus). */
+  .drawer-header-extras {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .source-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--surface-tint, #F5F5F7);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+  .source-chip svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.75;
+  }
+
+  .drawer-tabs {
+    display: flex;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 24px;
+  }
+  .drawer-tab {
+    padding: 12px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    background: transparent;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    font-family: inherit;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .drawer-tab:hover { color: var(--text-body); }
+  .drawer-tab[aria-selected="true"] {
+    color: var(--text-primary);
+    font-weight: 600;
+    border-bottom-color: var(--accent-blue);
+  }
+
+  .drawer-body {
+    flex: 1;
+    padding: 20px 24px;
+    overflow-y: auto;
+    background: var(--surface-tint);
+  }
+  .drawer-placeholder {
+    padding: 28px 20px;
+    border: 1px dashed var(--border-divider);
+    border-radius: var(--r-md);
+    background: var(--panel);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .drawer-placeholder strong {
+    display: block;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+
+  .drawer-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    gap: 10px;
+    background: var(--panel);
+  }
+  .drawer-footer .btn { flex: 1; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     LEADS PAGE — v0.7.0 controls + card list
+     Base rules only. Mobile-specific rules live in the @media block
+     at the bottom of this stylesheet (source-order cascade — see §5
+     architecture notes in HANDOFF).
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* "Mis à jour il y a 2 min" meta in the toggle row, right-aligned. */
+  .leads-updated-meta {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: -0.05px;
+  }
+
+  /* Page-level Leads search. Used inside the leads-table-card header.
+     Matches the .search pill shape for visual rhyme. */
+  .leads-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 240px;
+    max-width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-sm);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .leads-search:focus-within {
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 3px rgba(91, 109, 255, 0.08);
+  }
+  .leads-search svg {
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+  .leads-search input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    min-width: 0;
+  }
+  .leads-search input::placeholder { color: var(--text-muted); }
+
+  /* Stage KPI cards — the Prodex-style row that sits above the table.
+     Six cards per type. Click = filter the table to that stage. Click the
+     active card again = deselect to "all". Card face treatment flips
+     between default and active states:
+       Default: white bg · soft border · colored icon in soft-tint badge
+       Active:  soft-tint bg (stage.bg) · no border · white icon badge ·
+                deeper text so label + count stay readable on the tint. */
+  .stage-cards {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stage-card {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    min-width: 0;
+    transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  }
+  .stage-card:hover:not(.stage-card--active) {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-xs);
+  }
+  .stage-card--active {
+    background: var(--stage-bg);
+    border-color: transparent;
+  }
+  .stage-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--stage-bg);
+    color: var(--stage-fg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 120ms ease;
+  }
+  .stage-card--active .stage-card-icon { background: var(--panel); }
+  .stage-card-icon svg { width: 18px; height: 18px; }
+  .stage-card-text { min-width: 0; display: block; }
+  .stage-card-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: -0.1px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stage-card--active .stage-card-label { color: var(--stage-fg); }
+  .stage-card-count {
+    display: block;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stage-card--active .stage-card-count { color: var(--stage-deep); }
+
+  /* Score chip — Chaud / Tiède / Froid. Colored dot + label inside a
+     tinted pill. Chosen so all three weights read at the same visual
+     volume (no one chip shouts louder than another). */
+  .score-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    line-height: 1.3;
+  }
+  .score-chip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .score-chip--hot  { background: #FCEBEB; color: #A32D2D; }
+  .score-chip--hot  .score-chip-dot { background: #E24B4A; }
+  .score-chip--warm { background: #FAEEDA; color: #854F0B; }
+  .score-chip--warm .score-chip-dot { background: #F5B94C; }
+  .score-chip--cold { background: #E6F1FB; color: #0C447C; }
+  .score-chip--cold .score-chip-dot { background: #85B7EB; }
+
+  /* Leads table card — contained Prodex-style card. Whole table (header +
+     column labels + rows) lives inside one surface. Click a row → drawer.
+     Design notes:
+       - Header row: identity left (icon + title + meta) · actions right
+         (search + Sort button + Filter button). Actions wrap on narrow.
+       - Column headers are muted uppercase, subtle hairline under.
+       - Rows are CSS grid with named column widths so body + header align.
+       - Selected row gets a soft tint matching the drawer-open lead.
+       - Last row has no hairline to avoid a double border with the card. */
+  .leads-table-card {
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .leads-table-header {
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+  }
+  .leads-table-header-title {
+    flex: 1;
+    min-width: 0;
+  }
+  .leads-table-title {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.15px;
+  }
+  .leads-table-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .leads-table-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 36px;
+    padding: 0 13px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-sm);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    letter-spacing: -0.05px;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .leads-table-btn:hover {
+    background: var(--row-hover);
+    border-color: var(--border-strong);
+  }
+  .leads-table-btn svg { width: 14px; height: 14px; stroke-width: 2; }
+  .leads-table-btn--active {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--panel);
+    box-shadow: none;
+  }
+  .leads-table-btn--active:hover {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--panel);
+    opacity: 0.92;
+  }
+  .leads-table-btn-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    background: var(--accent-blue);
+    color: var(--panel);
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: var(--r-pill);
+    line-height: 1;
+  }
+
+  /* Table grid — header + body share identical column widths.
+     Widths are tuned for an ~880px content area on desktop; tablet and
+     mobile collapse via the @media rules at the bottom of this stylesheet. */
+  .leads-table-head,
+  .leads-row {
+    display: grid;
+    grid-template-columns:
+      minmax(180px, 2.2fr)  /* Nom (avatar + name + email)   */
+      minmax(100px, 1fr)    /* Budget                         */
+      minmax(140px, 1.4fr)  /* Zone · timeline                */
+      minmax(90px,  0.9fr)  /* Score chip                     */
+      minmax(70px,  0.8fr)  /* Agent avatar                   */
+      minmax(72px,  0.9fr); /* Date                           */
+    gap: 14px;
+    align-items: center;
+  }
+  /* Select-mode variant: prepend a 44px checkbox column. Applied via
+     --selectable modifier set on the head and body when state.selectionMode. */
+  .leads-table-head--selectable,
+  .leads-table-body--selectable .leads-row {
+    grid-template-columns:
+      44px                  /* Checkbox (fixed width)        */
+      minmax(180px, 2.2fr)
+      minmax(100px, 1fr)
+      minmax(140px, 1.4fr)
+      minmax(90px,  0.9fr)
+      minmax(70px,  0.8fr)
+      minmax(72px,  0.9fr);
+  }
+  .leads-table-head {
+    padding: 12px 22px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .leads-table-body { display: block; }
+  .leads-row {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 80ms ease;
+  }
+  .leads-row:hover { background: var(--row-hover); }
+  .leads-row[data-selected="true"] { background: #F2F5FF; }
+  .leads-row--picked { background: #EEF2FF; }
+  .leads-row--picked:hover { background: #E0E7FF; }
+  .leads-row:last-child { border-bottom: 0; }
+
+  /* Sortable column header — clickable. Muted double-chevron when idle,
+     coloured arrow when active. Reset button reset + hover affordance. */
+  .leads-col-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    user-select: none;
+    text-align: left;
+  }
+  .leads-col-header:hover { color: var(--text-primary); }
+  .leads-col-header[aria-sort="ascending"],
+  .leads-col-header[aria-sort="descending"] { color: var(--text-primary); }
+  .leads-col-sort {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .leads-col-sort svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2;
+  }
+  .leads-col-sort--idle { opacity: 0.45; }
+  .leads-col-sort--active {
+    color: var(--accent-blue);
+    opacity: 1;
+  }
+
+  /* Checkbox column + checkbox cell visual. The input itself isn't rendered —
+     the row click is the toggle, and we draw a styled span with an optional
+     check icon inside. Keeps the tap-target large and the visual crisp. */
+  .leads-col--check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .leads-col-header--check {
+    padding: 0;                /* override cell padding, center the box */
+    justify-content: center;
+    cursor: pointer;
+  }
+  .leads-checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 1.5px solid var(--border-strong);
+    background: var(--panel);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--panel);
+    transition: background 100ms ease, border-color 100ms ease;
+  }
+  .leads-checkbox svg { width: 12px; height: 12px; stroke-width: 3; }
+  .leads-checkbox--on {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: var(--panel);
+  }
+  .leads-col-header--check:hover .leads-checkbox:not(.leads-checkbox--on) {
+    border-color: var(--accent-blue);
+  }
+
+  /* Bulk action bar: lives inside the table card at the bottom. When
+     selection > 0, it enters from below. Sticky to the card's bottom edge
+     during scroll — sits visually on top of the last row without a gap. */
+  .leads-bulk-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 22px;
+    background: var(--panel);
+    border-top: 1px solid var(--border-subtle);
+    box-shadow: 0 -6px 18px -12px rgba(15, 23, 42, 0.18);
+  }
+  .leads-bulk-bar-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.05px;
+  }
+  .leads-bulk-bar-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    flex-shrink: 0;
+  }
+  .leads-bulk-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+  .leads-bulk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 11px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-sm);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    letter-spacing: -0.05px;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+  .leads-bulk-btn:hover {
+    background: var(--row-hover);
+    border-color: var(--border-strong);
+  }
+  .leads-bulk-btn svg { width: 13px; height: 13px; stroke-width: 2; }
+  .leads-bulk-btn--danger { color: #B91C1C; }
+  .leads-bulk-btn--danger:hover {
+    background: #FEE2E2;
+    border-color: #F5A5A5;
+    color: #7F1D1D;
+  }
+  .leads-bulk-bar-clear {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .leads-bulk-bar-clear:hover {
+    background: var(--row-hover);
+    color: var(--text-primary);
+  }
+  .leads-bulk-bar-clear svg { width: 16px; height: 16px; stroke-width: 2; }
+
+  .leads-col { min-width: 0; }
+  .leads-col--nom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .leads-col-nom-text { min-width: 0; }
+  .leads-col-nom-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .leads-col-nom-email {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .leads-col--budget {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.2px;
+  }
+  .leads-col--zone {
+    font-size: 13px;
+    color: var(--text-body);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .leads-col--date {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .leads-row-agent { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .leads-row-agent--none {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  /* Score pill inside the table row — sized slightly smaller than the
+     standalone .score-chip elsewhere in the app. */
+  .leads-col--score .score-chip {
+    font-size: 11px;
+    padding: 3px 9px;
+  }
+
+  /* Empty-state inside the leads table card. Softer than the main app
+     empty-state — visually a panel at the spot where rows would have been. */
+  .leads-empty {
+    padding: 48px 24px;
+    text-align: center;
+  }
+  .leads-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .leads-empty-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 440px;
+    margin: 0 auto;
+    line-height: 1.55;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     LEADS — toggle + type-accent surface cues.
+     Everything type-aware reads from --type-accent / --type-accent-bg /
+     --type-accent-strong, which are set on the .leads mode-* root
+     class. Flipping the toggle re-palettes the whole surface in one
+     place. The stage KPI cards, table card header icon, and toggle
+     tabs all pick up these variables.
+     ═══════════════════════════════════════════════════════════════ */
+  .leads {
+    --type-accent:        var(--accent-blue);
+    --type-accent-bg:     var(--blue-soft);
+    --type-accent-strong: var(--accent-blue);
+  }
+  .leads.mode-seller {
+    --type-accent:        #8C5A08;              /* amber-deep (readable) */
+    --type-accent-bg:     var(--amber-soft);
+    --type-accent-strong: var(--accent-amber);  /* vibrant for the strip */
+  }
+
+  /* 4px band at the very top. Visual commitment to "this surface is
+     type-aware" — picks up the vibrant accent, not the text accent. */
+  .leads .leads-topedge {
+    height: 4px;
+    background: var(--type-accent-strong);
+    border-radius: 2px;
+    margin-bottom: 14px;
+  }
+
+  /* Toggle row: compact pill + context chip on the same line. */
+  .leads .leads-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  /* Compact segmented pill toggle. */
+  .leads-toggle {
+    display: inline-flex;
+    background: var(--surface-tint);
+    border-radius: var(--r-pill);
+    padding: 3px;
+    gap: 2px;
+  }
+  .leads-toggle-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--r-pill);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .leads-toggle-tab svg { width: 14px; height: 14px; opacity: 0.7; }
+  .leads-toggle-tab:hover:not([aria-selected="true"]) { color: var(--text-primary); }
+  .leads .leads-toggle-tab[aria-selected="true"] {
+    background: var(--panel);
+    color: var(--type-accent);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+  .leads .leads-toggle-tab[aria-selected="true"] svg {
+    opacity: 1;
+    color: var(--type-accent);
+  }
+
+  /* Context chip: pill echoing the active type's palette.
+     Sits next to the toggle; carries the raw type count in words. */
+  .leads-context-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+  }
+  .leads-context-chip svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+  .leads .leads-context-chip {
+    background: var(--type-accent-bg);
+    color: var(--type-accent);
+  }
+  /* ═══════════════════════════════════════════════════════════════
+     RESPONSIVE (placed last so these override all base rules
+     regardless of the order base rules appear above)
+     ═══════════════════════════════════════════════════════════════ */
+  @media (max-width: 1024px) {
+    :root { --sidebar-w: 208px; }
+    .topbar { padding: 0 24px; }
+    .content { padding: 0 24px 24px; }
+    .search { width: 240px; }
+
+    /* Leads Layer 2 — tablet collapses the 6-card stage grid to 3 cols.
+       Table header still fits in one row but search narrows. */
+    .stage-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .leads-search { width: 200px; }
+  }
+
+  @media (max-width: 768px) {
+    /* Leads Layer 2 — mobile: 2-column stage grid, and the table header
+       stacks title + actions vertically. Search takes full row width.
+       Table rows keep their grid — columns with long content truncate
+       via text-overflow. Below ~600px, consider a card fallback later;
+       for now horizontal scroll on the card isn't needed because the
+       grid columns have sane minmax() floors. */
+    .stage-cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .stage-card { padding: 14px; }
+    .stage-card-count { font-size: 22px; }
+
+    .leads-table-header { padding: 14px 16px; }
+    .leads-table-header-title { flex: 1 1 100%; }
+    .leads-table-header-actions {
+      flex: 1 1 100%;
+      justify-content: flex-start;
+    }
+    .leads-search { width: 100%; flex: 1 1 200px; }
+
+    .leads-table-head,
+    .leads-row {
+      padding-left: 16px;
+      padding-right: 16px;
+      gap: 10px;
+    }
+    .leads-updated-meta { flex: 1 1 100%; margin-left: 0; }
+
+    /* Mobile bulk bar: wrap; drop count-text on tight widths via min-widths */
+    .leads-bulk-bar {
+      padding: 10px 16px;
+      flex-wrap: wrap;
+    }
+    .leads-bulk-bar-actions { gap: 5px; }
+    .leads-bulk-btn { padding: 0 9px; font-size: 11px; }
+    .leads-bulk-btn span { display: none; }  /* icons only on mobile */
+    .leads-bulk-btn { height: 30px; width: 36px; justify-content: center; padding: 0; }
+
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      height: 100vh;
+      height: 100dvh;
+      transform: translateX(-100%);
+      transition: transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1);
+      z-index: 60;
+      box-shadow: var(--shadow-shell);
+    }
+    .sidebar[data-open="true"] { transform: translateX(0); }
+
+    .topbar {
+      padding: 0 16px;
+      gap: 12px;
+      height: 64px;
+    }
+    .topbar-actions { gap: 6px; }
+    .page-title { font-size: 18px; }
+    /* Trim the topbar on mobile — keep only bell + user */
+    .search,
+    .avatar-stack,
+    .icon-btn[aria-label="Ajouter un prospect"] {
+      display: none;
+    }
+    .hamburger { display: grid !important; }
+    .content { padding: 0 16px 16px; }
+    .empty-state { flex-direction: column; align-items: flex-start; gap: 12px; }
+
+    /* Mobile drawer: full-screen takeover, above everything */
+    .drawer {
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: auto;
+      height: 100vh;
+      height: 100dvh;
+      border-left: 0;
+      box-shadow: none;
+      z-index: 70;
+    }
+    .drawer-header {
+      padding: 14px 16px;
+      align-items: center;
+    }
+    .drawer-name { font-size: 17px; }
+    .drawer-meta { font-size: 12px; }
+    .drawer-tabs {
+      padding: 0 16px;
+      gap: 18px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .drawer-tab { white-space: nowrap; }
+    .drawer-body { padding: 16px; }
+    .drawer-footer {
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      gap: 8px;
+    }
+    /* On mobile: close button stays on the LEFT (native iOS/Android back pattern)
+       and renders as a back-arrow. Reset the desktop order:2 that pushes it right. */
+    .drawer-close { order: 0; }
+
+    /* On mobile, lock body scroll behind the drawer */
+    body[data-drawer-open="true"] { overflow: hidden; }
+  }
+  </style>
 </head>
 <body>
 
-<!-- LOGIN GATE -->
-<div class="pw-overlay" id="pwGate">
-  <canvas id="pwParticles" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
-  <div class="pw-modal" id="pwModal">
-    <div class="pw-studio-logo">studio AI<span>2K</span></div>
-    <div class="pw-modal-icon">
-      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    </div>
-    <div class="pw-modal-title">Open House</div>
-    <div class="pw-modal-sub">Lead Dashboard · Rapport d'avancement</div>
-    <div class="pw-field" id="pwField" onclick="document.getElementById('pwInput').focus()">
-      <input type="password" id="pwInput" style="position:absolute;opacity:0;width:1px;height:1px" onkeydown="if(event.key==='Enter')pwCheck()" oninput="pwDots(this.value)">
-      <span class="pw-placeholder" id="pwDisplay">Mot de passe</span>
-    </div>
-    <div class="pw-error" id="pwError"></div>
-    <button class="pw-btn" onclick="pwCheck()">Accéder →</button>
-    <div class="pw-footer">Accès réservé · <a href="https://ai2k.dev">ai2k.dev</a></div>
-  </div>
-</div>
-
-<canvas id="P"></canvas>
-<div id="fLogo">studio AI<span>2K</span></div>
-<div class="W">
-
-<!-- NAV -->
-<nav id="nav">
-  <div class="C">
-    <ul class="nav-left"><li><a href="#progress">Progress</a></li><li><a href="#modules">Features</a></li><li><a href="#roadmap">Roadmap</a></li></ul>
-    <div class="nav-anchor" id="navAnchor"></div>
-    <ul class="nav-right"><li><a href="#decisions">Décisions</a></li><li><a href="#feedback">Retours</a></li><li><a href="#changelog">Changelog</a></li></ul>
-  </div>
-</nav>
-<button class="nav-pill" id="navPill"><i></i><i></i><i></i></button>
-<ul class="nl-mobile" id="nLM"><li><a href="#progress" data-text="Progress">Progress</a></li><li><a href="#modules" data-text="Features">Features</a></li><li><a href="#roadmap" data-text="Roadmap">Roadmap</a></li><li><a href="#decisions" data-text="Décisions">Décisions</a></li><li><a href="#feedback" data-text="Retours">Retours</a></li><li><a href="#changelog" data-text="Changelog">Changelog</a></li></ul>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="hal"></div>
-  <div class="C"><div class="hc">
-    <div class="hero-ghost" id="hGhost">studio AI2K</div>
-    <p class="he">Rapport d'avancement — Avril 2026</p>
-    <h2 class="hero-headline">Open House<br>Prospects — suivi <em>projet.</em></h2>
-    <p class="hs">Outil de gestion et distribution de leads immobiliers — acquéreurs et vendeurs dans une seule interface. Couche opérationnelle entre Meta et les équipes commerciales — centralisation, attribution, qualification, actions immédiates.</p>
-    <div class="hero-meta">
-      <div class="hero-meta-item"><span class="val" id="kpiFeatures">2</span><span class="lbl">Types de leads</span></div>
-      <div class="hero-meta-item"><span class="val" style="color:var(--acc)" id="kpiPhase">2</span><span class="lbl">Phase actuelle</span></div>
-      <div class="hero-meta-item"><span class="val" style="color:var(--t3)" id="kpiPlanned">HTML</span><span class="lbl">Stack frontend</span></div>
-    </div>
-    <div class="hcta"><a href="#roadmap">Roadmap →</a><a href="#feedback">Retours →</a></div>
-  </div></div>
-  <div class="sh"><span>Scroll</span><div class="shl"></div></div>
-</section>
-
-<!-- PROGRESS -->
-<section id="progress"><div class="C">
-  <div class="rv">
-    <p class="slb">Progress</p>
-    <h2 class="st">Où en <em>est-on.</em></h2>
-  </div>
-
-  <div style="margin-top:64px;display:flex;flex-direction:column;gap:16px">
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
-      <div class="si">Origines</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Des leads bien générés, mal exploités</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75">Open House génère des leads qualifiés pour ses agences immobilières partenaires via des campagnes Meta (Instagram, Facebook). Aujourd'hui, ces leads arrivent dans le Meta Lead Center — mais leur distribution aux agents est manuelle : export, envoi par WhatsApp ou email, suivi sur tableur. Les leads sont contactés trop tard, parfois oubliés, et le retour sur la qualité reste informel. Open House Prospects résout ce problème en créant une couche opérationnelle entre Meta et les équipes terrain — récupération automatique, attribution claire, qualification structurée, actions immédiates.</p>
-    </div>
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
-      <div class="si" style="color:var(--amb);background:var(--ambdim);border-color:rgba(255,184,77,.15)">Phase actuelle</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">L'application est en ligne — la page Leads est fonctionnelle</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Open House Prospects est désormais accessible en ligne. La première agence intégrée — <strong style="color:var(--t1)">Magrey & Sons</strong> — a son logo, son sélecteur de ville, et son espace dans l'application. Le produit a évolué d'un prototype React vers une application HTML/CSS/JS complète en un seul fichier (~3 200 lignes), déployée sur GitHub Pages.</p>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">La page Leads est le cœur du produit et elle est opérationnelle : toggle Acquéreurs/Vendeurs avec bande de couleur par type, 6 cartes KPI par étape de pipeline (clic = filtre), tableau trié par colonnes cliquables (tri descendant → ascendant → désactivé), mode sélection avec cases à cocher et barre d'actions groupées (assigner, changer statut, archiver, supprimer), recherche, drawer de détail lead (structure prête, contenu des onglets en cours).</p>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75">L'architecture est solide : un seul objet d'état, fonctions de rendu qui correspondent 1:1 à de futurs composants React, délégation d'événements, tokens CSS. Le responsive fonctionne sur tablette et mobile. Prochaine étape : le contenu des onglets du drawer (Infos, Qualification, Activité, Notes).</p>
-    </div>
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
-      <div class="si" style="color:var(--t2);background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)">Infrastructure cible</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">HTML → PostgreSQL → Hetzner — simple et efficace</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le dashboard est conçu pour gérer plusieurs agences simultanément. Chaque agence dispose de son propre espace — leads isolés, agents dédiés, données séparées. Open House supervise l'ensemble depuis une vue super admin. L'intégration Meta fait le lien entre les campagnes et le dashboard. En interne d'abord, intégré aux offres Open House. Puis, à terme, un produit SaaS autonome.</p>
-
-      <div style="font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">Stack technique</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Frontend</span><span style="font-size:12px;color:var(--t3)">HTML / CSS / JS — pas de framework</span></div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Données mock</span><span style="font-size:12px;color:var(--t3)">Google Sheets (phase design)</span></div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Base de données</span><span style="font-size:12px;color:var(--t3)">PostgreSQL — directement sur le VPS</span></div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Serveur</span><span style="font-size:12px;color:var(--t3)">Express.js sur Hetzner CPX22</span></div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Auth</span><span style="font-size:12px;color:var(--t3)">Sessions Express + PostgreSQL</span></div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Coût estimé</span><span style="font-size:12px;color:var(--t3)">~8 €/mois au lancement</span></div>
-      </div>
-    </div>
-
-    <!-- GO-TO-MARKET -->
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
-      <div class="si" style="color:var(--acc)">Go-to-market</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Lancement doux — étape par étape</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:20px">L'outil ne sera pas lancé en masse. La stratégie est progressive — construire la confiance avant de scaler.</p>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--acc);min-width:20px">01</span><span style="font-size:14px;color:var(--t2)">Email ciblé aux agences partenaires existantes</span></div>
-        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--acc);min-width:20px">02</span><span style="font-size:14px;color:var(--t2)">Landing page dédiée — présentation du produit, bénéfices</span></div>
-        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--acc);min-width:20px">03</span><span style="font-size:14px;color:var(--t2)">Appel découverte — démo personnalisée, questions, feedback</span></div>
-        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--acc);min-width:20px">04</span><span style="font-size:14px;color:var(--t2)">Onboarding accompagné — configuration, import, formation</span></div>
-      </div>
-    </div>
-
-    <!-- ARCHITECTURE DIAGRAM -->
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
-      <div class="si">Architecture</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Le flux de données — de Meta au terrain</h3>
-      <p style="font-size:14px;color:var(--t2);line-height:1.75;margin-bottom:28px">Les leads générés par les campagnes Meta arrivent automatiquement dans le dashboard. Les agents qualifient les leads — et cette qualification remonte vers Meta pour améliorer le ciblage des futures campagnes.</p>
-
-      <svg width="100%" viewBox="0 0 680 440" style="max-width:680px">
-        <defs>
-          <marker id="af1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#00ffaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
-          <marker id="af2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#ffb84d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
-        </defs>
-        <rect x="200" y="16" width="280" height="48" rx="8" fill="rgba(30,58,95,.6)" stroke="#3b82f6" stroke-width="0.5"/>
-        <text x="340" y="36" text-anchor="middle" fill="#93c5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Campagnes Meta</text>
-        <text x="340" y="52" text-anchor="middle" fill="#6b9bd2" font-size="11" font-family="Outfit,sans-serif">Instagram / Facebook ads</text>
-        <line x1="340" y1="64" x2="340" y2="88" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
-        <rect x="190" y="88" width="300" height="48" rx="8" fill="rgba(30,58,95,.6)" stroke="#3b82f6" stroke-width="0.5"/>
-        <text x="340" y="108" text-anchor="middle" fill="#93c5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Meta Lead Center</text>
-        <text x="340" y="124" text-anchor="middle" fill="#6b9bd2" font-size="11" font-family="Outfit,sans-serif">Source de vérité — leads stockés</text>
-        <line x1="340" y1="136" x2="340" y2="160" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
-        <text x="355" y="154" fill="#454d60" font-size="10" font-family="Azeret Mono,monospace">API</text>
-        <rect x="170" y="160" width="340" height="48" rx="8" fill="rgba(45,31,78,.5)" stroke="#8b5cf6" stroke-width="0.5"/>
-        <text x="340" y="180" text-anchor="middle" fill="#c4b5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Hetzner CPX22</text>
-        <text x="340" y="196" text-anchor="middle" fill="#9886cc" font-size="11" font-family="Outfit,sans-serif">Express.js + PostgreSQL</text>
-        <line x1="340" y1="208" x2="340" y2="232" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
-        <rect x="50" y="232" width="580" height="180" rx="12" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
-        <text x="340" y="258" text-anchor="middle" fill="#6ee7b7" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Open House Prospects Dashboard</text>
-        <rect x="80" y="276" width="150" height="48" rx="8" fill="rgba(26,29,36,.8)" stroke="#374151" stroke-width="0.5"/>
-        <text x="155" y="296" text-anchor="middle" fill="#d1d5db" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Super Admin</text>
-        <text x="155" y="312" text-anchor="middle" fill="#6b7280" font-size="11" font-family="Outfit,sans-serif">Open House</text>
-        <rect x="265" y="276" width="150" height="48" rx="8" fill="rgba(42,31,10,.7)" stroke="#d97706" stroke-width="0.5"/>
-        <text x="340" y="296" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Admin Agence</text>
-        <text x="340" y="312" text-anchor="middle" fill="#a38321" font-size="11" font-family="Outfit,sans-serif">Assigner + gérer</text>
-        <rect x="450" y="276" width="150" height="48" rx="8" fill="rgba(42,21,16,.6)" stroke="#dc2626" stroke-width="0.5" opacity="0.8"/>
-        <text x="525" y="296" text-anchor="middle" fill="#fca5a5" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Agent</text>
-        <text x="525" y="312" text-anchor="middle" fill="#b07070" font-size="11" font-family="Outfit,sans-serif">Qualifier + agir</text>
-        <rect x="100" y="348" width="90" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
-        <text x="145" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Voir leads</text>
-        <rect x="205" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
-        <text x="245" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Assigner</text>
-        <rect x="300" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
-        <text x="340" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Qualifier</text>
-        <rect x="395" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
-        <text x="435" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Appeler</text>
-        <rect x="490" y="348" width="80" height="28" rx="6" fill="rgba(42,31,10,.5)" stroke="#d97706" stroke-width="0.5"/>
-        <text x="530" y="366" text-anchor="middle" fill="#fbbf24" font-size="10" font-family="Outfit,sans-serif">CAPI ↑</text>
-        <path d="M590 300 L640 300 L640 184 L512 184" fill="none" stroke="#ffb84d" stroke-width="1.5" marker-end="url(#af2)"/>
-        <text x="648" y="240" fill="#ffb84d" font-size="10" font-family="Azeret Mono,monospace">CAPI</text>
-        <text x="648" y="254" fill="#a38321" font-size="9" font-family="Azeret Mono,monospace">Feedback</text>
-      </svg>
-
-      <div style="margin-top:28px;font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">Qualification → signal Meta</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-width:560px">
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--amb)">En cours</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Contact</span></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--acc)">Qualifié</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Lead</span></div>
-        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--acc)">Converti</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Purchase</span></div>
-      </div>
-      <p style="font-size:12px;color:var(--t3);margin-top:12px;line-height:1.6">Chaque qualification envoyée par un agent améliore le ciblage des futures campagnes. L'algorithme Meta apprend quels profils convertissent réellement.</p>
-    </div>
-
-  </div>
-</div></section>
-
-<!-- MODULES -->
-<section id="modules"><div class="C">
-  <div class="rv">
-    <p class="slb">Features</p>
-    <h2 class="st">Un outil, deux types de <em>leads.</em></h2>
-    <p class="ss">Acquéreurs et vendeurs dans la même interface — un toggle filtre la vue. Mêmes actions, mêmes pipelines personnalisables, champs différents selon le type.</p>
-  </div>
-  <div id="moduleMap" style="margin-top:64px"></div>
-</div></section>
-
-<!-- ROADMAP -->
-<section id="roadmap"><div class="C">
-  <div class="rv">
-    <p class="slb">Roadmap</p>
-    <h2 class="st">Le chemin vers le <em>produit.</em></h2>
-  </div>
-  <div class="pipeline fly-steps" style="--pipe-fill:0.19">
-    <div class="pipe-line"></div><div class="pipe-line-fill"></div>
-    <div class="pipe-steps">
-      <div class="pipe-step done"><div class="pipe-dot">100%</div><h3>Vision produit</h3><p>Brief complet — Acquéreurs + Vendeurs. Rôles, data flow, intégration Meta validée.</p></div>
-      <div class="pipe-step active"><div class="pipe-dot">50%</div><h3>Design HTML</h3><p>Page Leads fonctionnelle. Drawer, tri, sélection, bulk actions. Autres pages en cours.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Intégration serveur</h3><p>Push HTML sur Hetzner CPX22. Express.js + PostgreSQL remplace Google Sheets.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Intégration Meta</h3><p>Webhooks Lead Ads, import historique, CAPI feedback, mapping champs par agence.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Auth & multi-tenancy</h3><p>Sessions Express + PostgreSQL. Rôles (Super Admin / Admin / Agent), isolation par agence.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Agence pilote</h3><p>Première agence réelle. Leads réels, retours terrain, ajustements.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Lancement</h3><p>Déploiement agences Open House. Onboarding, formation, support.</p></div>
-      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>SaaS</h3><p>Multi-tenant, onboarding self-serve, billing, commercialisation.</p></div>
-    </div>
-  </div>
-  <div style="margin-top:48px;padding:32px 28px;background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-      <span style="font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--adim);border:1px solid rgba(0,255,170,.15);padding:5px 14px;letter-spacing:1.5px;text-transform:uppercase">Prochaine livraison</span>
-    </div>
-    <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Contenu du drawer — Infos, Qualification, Activité, Notes</h3>
-    <p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:560px">La structure du drawer est en place. Le prochain chantier : remplir les 4 onglets avec du vrai contenu — formulaire de contact éditable, qualification par l'agent (pipeline + score), timeline d'activité, et notes horodatées. C'est le workflow principal de l'agent au quotidien.</p>
-  </div>
-</div></section>
-
-<!-- DÉCISIONS -->
-<section id="decisions"><div class="C">
-  <div class="rv">
-    <p class="slb">Arbitrages</p>
-    <h2 class="st">Chaque idée examinée, chaque choix <em>justifié.</em></h2>
-    <p class="ss">Le brief original a été passé au crible. Voici les arbitrages clés — ce qu'on construit maintenant, ce qu'on reporte, et pourquoi.</p>
-  </div>
-
-  <div style="margin-top:48px;display:flex;flex-direction:column;gap:12px">
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Deux modules séparés → Un outil, deux types</span>
-        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15);text-transform:uppercase;letter-spacing:1px">Simplifié</span>
-      </div>
-      <p style="font-size:13px;color:var(--t2);line-height:1.7">Un toggle Acquéreurs/Vendeurs filtre la vue. Mêmes actions, même interface — seuls les champs et les étapes de pipeline changent. Construire deux modules séparés doublerait le code sans bénéfice pour l'utilisateur.</p>
-    </div>
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Scoring = qualification → Scoring ≠ qualification</span>
-        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15);text-transform:uppercase;letter-spacing:1px">Clarifié</span>
-      </div>
-      <p style="font-size:13px;color:var(--t2);line-height:1.7">Le scoring (🔥🟡❄️) est un indicateur de priorité calculé automatiquement — « qui appeler en premier ce matin. » La qualification, c'est le pipeline : l'agent parle au lead et le fait avancer. C'est le pipeline qui remonte vers Meta via CAPI pour améliorer le ciblage, pas le score.</p>
-    </div>
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Pipelines personnalisables par agence</span>
-        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15);text-transform:uppercase;letter-spacing:1px">Confirmé</span>
-      </div>
-      <p style="font-size:13px;color:var(--t2);line-height:1.7">Chaque agence travaille différemment. Les étapes de pipeline sont stockées en JSON par agence — toute l'interface lit depuis ce tableau. Coûte presque rien à construire dès le départ, douloureux à ajouter après. C'est un des avantages clés face au Centre de Prospects Meta.</p>
-    </div>
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Templates messages avec champs dynamiques</span>
-        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15);text-transform:uppercase;letter-spacing:1px">Confirmé</span>
-      </div>
-      <p style="font-size:13px;color:var(--t2);line-height:1.7">Certaines agences envoient un email type comme premier contact. Templates avec {nom}, {budget}, {secteur} — gain de temps, premier point de contact standardisé. Besoin réel confirmé par le workflow terrain.</p>
-    </div>
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Distribution email complète → Notification simple</span>
-        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:var(--ambdim);color:var(--amb);border:1px solid rgba(255,184,77,.15);text-transform:uppercase;letter-spacing:1px">Reporté</span>
-      </div>
-      <p style="font-size:13px;color:var(--t2);line-height:1.7">Un système complet de gestion par email représente un chantier important pour des agences qui ne veulent pas de l'outil. Un toggle « notification email » par agence couvre le besoin. Si des clients payants demandent explicitement un mode email-only, il sera ajouté.</p>
-    </div>
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">WhatsApp Business API → Liens wa.me</span>
-        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:var(--ambdim);color:var(--amb);border:1px solid rgba(255,184,77,.15);text-transform:uppercase;letter-spacing:1px">Reporté</span>
-      </div>
-      <p style="font-size:13px;color:var(--t2);line-height:1.7">L'API WhatsApp Business nécessite une vérification Meta, coûte par message, et est complexe à intégrer. Les liens wa.me donnent un accès WhatsApp en un tap, zéro configuration. L'API Business sera ajoutée quand l'automatisation WhatsApp deviendra un vrai besoin.</p>
-    </div>
-
-    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Dashboard admin Open House</span>
-        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:var(--ambdim);color:var(--amb);border:1px solid rgba(255,184,77,.15);text-transform:uppercase;letter-spacing:1px">Phase 4</span>
-      </div>
-      <p style="font-size:13px;color:var(--t2);line-height:1.7">Pour 2-3 agences, se connecter à chaque vue suffit. Le multi-tenancy est propre dès le départ (agency_id partout), donc ajouter une couche admin plus tard = nouvelle vue sur les données existantes, pas une restructuration.</p>
-    </div>
-
-  </div>
-</div></section>
-
-<!-- FEEDBACK -->
-<section id="feedback"><div class="C">
-  <div class="rv">
-    <p class="slb">Feedback</p>
-    <h2 class="st">Vos <em>retours.</em></h2>
-  </div>
-
-  <div class="feedback-box rv" id="fbBox" style="text-align:center">
-    <div style="margin-bottom:20px">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </div>
-    <h3>Les retours s'activent après la première livraison</h3>
-    <p style="max-width:440px;margin:0 auto">Le formulaire de feedback sera disponible dès que le design HTML sera finalisé et consultable ici. En attendant, le projet avance — la fondation se construit.</p>
-  </div>
-</div></section>
-
-<!-- CHANGELOG -->
-<section id="changelog"><div class="C">
-  <div class="rv">
-    <p class="slb">Changelog</p>
-    <h2 class="st">Dernières <em>livraisons.</em></h2>
-  </div>
-  <div class="changelog rv">
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 14 — 20 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>v0.9.0 — Application en ligne, page Leads fonctionnelle</h4>
-        <p>L'application est accessible en ligne. Première agence intégrée : Magrey & Sons (logo, sélecteur de ville). Page Leads complète : 6 cartes KPI par étape (clic = filtre), tableau 6 colonnes avec tri par en-tête cliquable (3 états), mode sélection avec cases à cocher et barre d'actions groupées, recherche intégrée. Toggle Acquéreurs/Vendeurs avec bande de couleur par type. ~3 200 lignes de HTML/CSS/JS en un seul fichier.</p>
-      </div>
-    </div>
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 14 — 20 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Shell complet — sidebar, topbar, drawer, responsive</h4>
-        <p>Sidebar 260px avec logo agence, sélecteur ville/agence, navigation, dark mode, feedback card. Topbar sticky avec ombre au scroll, bouton +, cloche notifications, menu utilisateur. Drawer 480px (plein écran mobile) avec 4 onglets et footer actions. Responsive tablette et mobile. Chaîne ESC complète.</p>
-      </div>
-    </div>
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 14 — 20 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag update">Update</span>Architecture verrouillée — prête pour la migration</h4>
-        <p>Un seul objet d'état, fonctions de rendu composant par composant (migration React directe si nécessaire), délégation d'événements via data-action, tokens CSS en :root. Documentation : HANDOFF.md, DESIGN_SPEC.md (21 décisions verrouillées), DESIGN_PROTOCOL.md.</p>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- OLDER — hidden by default -->
-  <div class="changelog" id="clOlder" style="display:none">
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 14 — 20 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Spec finalisée — arbitrages verrouillés</h4>
-        <p>Brief passé au crible : « deux modules » → toggle de type. Scoring séparé de la qualification. Pipelines personnalisables. Templates messages. WhatsApp Business reporté. Admin Open House Phase 4.</p>
-      </div>
-    </div>
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 14 — 20 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag update">Update</span>Nom, positionnement, stack</h4>
-        <p>Open House Prospects — offert gratuitement aux clients, vente standalone après validation. Stack : HTML pur + Express.js + PostgreSQL sur Hetzner CPX22.</p>
-      </div>
-    </div>
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 7 — 13 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Prototype initial + intégration Meta verrouillée</h4>
-        <p>Shell React, page Leads, carte Paris interactive SVG, spec Meta (webhooks + CAPI), migration Vercel → Hetzner.</p>
-      </div>
-    </div>
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 31 mars — 6 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Vision produit & sélection stack</h4>
-        <p>Brief initial, 3 rôles, data flow, stack technique, multi-tenancy dès le départ.</p>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- MORE BUTTON -->
-  <div class="more-indicator rv" id="clMoreBtn" onclick="toggleOlderChangelog()">
-    <span id="clMoreTxt">More</span>
-    <div class="shl" id="clMoreLine"></div>
-  </div>
-
-</div></section>
-
-<!-- FOOTER -->
-<footer><div class="C"><div class="fr">
-  <p>&copy; 2026 studio AI2K. All rights reserved.</p>
-  <p>Dernière mise à jour : Semaine 14 — 20 avr</p>
-  <a href="https://ai2k.dev">ai2k.dev</a>
-</div></div></footer>
-
-</div>
+<div id="app"></div>
 
 <script>
-/* ═══ MODULE DATA ═══ */
-var MODULES = [
-  { section: "Gestion des leads", items: [
-    { name: "Liste & tableau", status: "proto", desc: "6 colonnes triables (Nom, Budget, Zone, Score, Agent, Date). Tri par clic sur l'en-tête — descendant → ascendant → désactivé. Recherche intégrée." },
-    { name: "Fiche lead (drawer)", status: "proto", desc: "Panneau 480px — structure prête avec 4 onglets (Infos, Qualification, Activité, Notes). Contenu des onglets en cours de construction." },
-    { name: "Cartes KPI par étape", status: "proto", desc: "6 cartes avec badge icône circulaire, compteur, clic = filtre le tableau. Clic sur la carte active = retour à « tous »." },
-    { name: "Mode sélection", status: "proto", desc: "Bouton Sélectionner → colonne checkbox, sélection persistante entre filtres et types, barre d'actions groupées en bas." },
-    { name: "Toggle Acquéreurs/Vendeurs", status: "proto", desc: "Pill compacte avec bande de couleur 4px (bleu acquéreurs, ambre vendeurs). Recolore toute l'interface au changement." },
-    { name: "Vue kanban", status: "planned", desc: "Pipeline en colonnes — glisser-déposer entre étapes. Complément à la vue tableau." },
-    { name: "Pipeline personnalisable", status: "planned", desc: "Chaque agence crée ses propres étapes. Stocké en JSON, dynamique dans toute l'interface." },
-    { name: "Scoring automatique", status: "planned", desc: "🔥 Hot / 🟡 Warm / ❄️ Cold — calculé depuis : téléphone vérifié, budget, horizon, préférence de contact." },
-    { name: "Actions directes", status: "planned", desc: "Click-to-call, lien wa.me (WhatsApp), mailto — une action = un tap." },
-    { name: "Templates messages", status: "planned", desc: "Templates avec champs dynamiques ({nom}, {budget}, {secteur}) — email et texte copiable pour WhatsApp." },
-  ]},
-  { section: "Distribution & assignation", items: [
-    { name: "Assignation manuelle", status: "proto", desc: "Le manager attribue un lead à un agent via le drawer. L'agent ne voit que ses leads." },
-    { name: "Actions groupées", status: "proto", desc: "Assigner, changer statut, archiver, supprimer — barre d'actions en bas du tableau. Contenu des popovers en cours." },
-    { name: "Règles d'assignation", status: "planned", desc: "Round-robin, par zone, par score, par charge — configurable par agence." },
-    { name: "Notification email", status: "planned", desc: "Toggle par agence — email automatique à l'arrivée d'un nouveau lead." },
-  ]},
-  { section: "Types de leads", items: [
-    { name: "Acquéreurs", status: "proto", desc: "Budget, type de projet, secteur (Rive Gauche/Droite/Centre), horizon. 10 leads dummy avec données complètes." },
-    { name: "Vendeurs", status: "proto", desc: "Surface, pièces, état, prix attendu, projet double. 2 leads dummy intégrés, même interface." },
-    { name: "Dual flag", status: "planned", desc: "Checkbox « Aussi vendeur ? » / « Aussi acheteur ? » dans le drawer." },
-    { name: "Création manuelle", status: "planned", desc: "Leads hors Meta — bouton + avec formulaire rapide + vue complète." },
-  ]},
-  { section: "Données & feedback", items: [
-    { name: "Base de données", status: "planned", desc: "Archive complète — Meta expire après 90 jours, notre outil conserve tout." },
-    { name: "Feedback loop", status: "planned", desc: "Raison quand Non qualifié ou Perdu. Données remontées pour optimiser les campagnes." },
-    { name: "Export", status: "planned", desc: "CSV et Excel — données filtrées." },
-    { name: "Filtres avancés", status: "planned", desc: "Score, source, agent, vérifié, date, afficher les perdus — popover multi-dimensionnel." },
-  ]},
-  { section: "Shell & navigation", items: [
-    { name: "Sidebar", status: "proto", desc: "260px, sticky, logo agence (Magrey & Sons), sélecteur ville, navigation, dark mode, feedback card. Tablette 208px." },
-    { name: "Topbar", status: "proto", desc: "Sticky avec ombre au scroll, bouton +, cloche notifications, menu utilisateur avec déconnexion." },
-    { name: "Sélecteur d'agence", status: "proto", desc: "Agence + ville avec map-pin. Multi-ville pour les admins." },
-    { name: "Drawer", status: "proto", desc: "480px desktop, plein écran mobile. 4 onglets, footer actions (Appeler, WhatsApp, Template). Structure prête." },
-    { name: "Responsive", status: "proto", desc: "Mobile (<768px) : sidebar overlay, drawer plein écran, KPIs 2 colonnes, bulk bar icon-only. Tablette (<1024px) : sidebar 208px." },
-  ]},
-  { section: "Pages à venir", items: [
-    { name: "Tableau de bord", status: "planned", desc: "KPIs, graphiques, carte Paris (SVG prêt), sources, statuts, équipe." },
-    { name: "Page Agents", status: "planned", desc: "Cards agents avec métriques de performance." },
-    { name: "Page Campagnes", status: "planned", desc: "Liste campagnes Meta — statut, budget, leads, coût par lead." },
-    { name: "Database", status: "planned", desc: "Archive de tous les leads — recherche, filtres, export." },
-    { name: "Paramètres", status: "planned", desc: "Réglages agence, pipelines, notifications, intégrations." },
-  ]},
-  { section: "Infrastructure", items: [
-    { name: "Auth / Rôles", status: "planned", desc: "Manager Agence + Agent. Sessions Express + PostgreSQL. Admin Open House en Phase 4.", essential: true },
-    { name: "Multi-tenancy", status: "planned", desc: "agency_id sur chaque requête dès le départ. Couche admin Phase 4.", essential: true },
-    { name: "Meta — Webhooks", status: "planned", desc: "Réception leads en temps réel sur Hetzner CPX22." },
-    { name: "Meta — CAPI", status: "planned", desc: "Événements pipeline → Meta. Contact → Lead → Purchase." },
-  ]},
+/* ═══════════════════════════════════════════════════════════════
+   STATE — single source of truth. Every render reads from here.
+   Every mutation goes through setState().
+   ═══════════════════════════════════════════════════════════════ */
+const state = {
+  // user + agency context
+  agency: {
+    id: 1,
+    name: "Magrey & Sons",
+    initials: "M",
+    logo: "magrey_logo.PNG",  // when present, img is used instead of initials
+    cities: [
+      { id: 1, name: "Paris" },
+      { id: 2, name: "Riviera" },
+    ],
+    currentCityId: 1,
+
+    // Pipeline stages per lead type. Dynamic per agency (PROJECT_SUMMARY §"Custom
+    // Pipeline Stages"): stored here, read by every UI element that deals with
+    // status (filter tabs, pipeline bar, drawer qualification tab, CAPI mapping).
+    // Stage `id` is stable (what gets stored on a lead); `label` can be renamed
+    // by the agency without breaking data. leads with status "lost" sit outside
+    // the pipeline — terminal state, rendered as the "Perdu" tab.
+    pipeline: {
+      buyer: [
+        { id: "to_process",    label: "À traiter" },
+        { id: "contacted",     label: "Contacté" },
+        { id: "qualified",     label: "Qualifié" },
+        { id: "visit_planned", label: "Visite programmée" },
+        { id: "offer_made",    label: "Offre faite" },
+        { id: "converted",     label: "Converti" },
+      ],
+      seller: [
+        { id: "to_process",      label: "À traiter" },
+        { id: "contacted",       label: "Contacté" },
+        { id: "estimation_sent", label: "Estimation envoyée" },
+        { id: "appointment",     label: "RDV programmé" },
+        { id: "mandate_signed",  label: "Mandat signé" },
+        { id: "sold",            label: "Vendu" },
+      ],
+    },
+  },
+  user: {
+    id: 1,
+    name: "Léo Martin",
+    email: "leo@magrey.fr",
+    role: "Agent",      // "Agent" | "Manager" | "Admin"
+    initials: "LM",
+    tone: "#5B6DFF",
+  },
+
+  // nav — active route
+  route: "leads",  // "leads" | "dashboard" | "agents" | "campaigns" | "database" | "settings" | "help"
+
+  // chrome state
+  darkMode: false,
+  sidebarOpen: false,        // mobile only
+  agencySwitcherOpen: false, // sidebar dropdown
+  userMenuOpen: false,       // topbar dropdown
+  drawer: null,              // null | { leadId, tab: "infos"|"qualification"|"activite"|"notes" }
+
+  // Leads page state — consumed by the toggle, page search, filter tabs,
+  // and pipeline bar. Lives at state root (not on state.route) so filter
+  // choices persist across route navigation.
+  leadType:    "buyer",      // "buyer" | "seller" — drives toggle + pipeline lookup
+  filterTab:   "all",        // "all" | pipeline stage id | "lost"
+  leadsSearch: "",           // page-scoped search query
+  // Column sort (v0.9.0). null = default order (by id). When set: { column, direction }.
+  // column ∈ "name" | "budget" | "zone" | "score" | "agent" | "date"
+  // direction ∈ "asc" | "desc"
+  leadsSort: null,
+  // Bulk-select mode (v0.9.0). selectionMode toggles the checkbox column on.
+  // selectedLeadIds persists across filter changes — the intent is "act on these",
+  // not "these that happen to be visible". Exit mode via Annuler or ESC.
+  selectionMode: false,
+  selectedLeadIds: [],
+
+  // Team roster. IDs used by lead.assignedAgentId.
+  team: [
+    { id: 1, initials: "SB", tone: "#6366F1", name: "Sophie Beaumont" },
+    { id: 2, initials: "MD", tone: "#0EA5E9", name: "Marc Delacroix" },
+    { id: 3, initials: "JR", tone: "#A855F7", name: "Julie Renard" },
+  ],
+
+  notifications: 7,
+
+  // Dummy leads — stand-in until the Express/Postgres backend ships
+  // (Phase 2 of the product stack per HANDOFF §1). Schema mirrors
+  // docs/DATA_MODEL.md: buyer fields (budget, zone, timeline, projectType) always
+  // present on buyers; seller fields (surface, rooms, expectedPrice, condition,
+  // sellingTimeline) present on sellers. status holds a pipeline stage id (from
+  // agency.pipeline[type]) or "lost" for terminal-fail leads. score / source are
+  // closed enums. assignedAgentId references state.team; null = unassigned.
+  leads: [
+    { id: 1,  type: "buyer",  initials: "ML", tone: "#A855F7", name: "Marie Lefèvre",       email: "marie.lefevre@gmail.com", phone: "+33 6 78 90 12 34", phoneVerified: true,  budget: "450 000 €",   zone: "Paris 16e",         timeline: "1–3 mois",  projectType: "Résidence principale",     status: "qualified",      score: "hot",  source: "ig",     assignedAgentId: 1,    campaign: "Prestige Paris 16e",   createdAt: "2026-04-09", notes: "Recherche 3 pièces avec balcon. Budget flexible." },
+    { id: 2,  type: "buyer",  initials: "PD", tone: "#0EA5E9", name: "Pierre Durand",        email: "p.durand@outlook.fr",    phone: "+33 6 89 01 23 45", phoneVerified: true,  budget: "320 000 €",   zone: "Neuilly",            timeline: "3–6 mois",  projectType: "Résidence principale",     status: "contacted",      score: "warm", source: "fb",     assignedAgentId: 2,    campaign: "Neuilly Familles",     createdAt: "2026-04-08", notes: "Premier achat. Besoin d'accompagnement financement." },
+    { id: 3,  type: "buyer",  initials: "SM", tone: "#6366F1", name: "Sophie Martin",        email: "smartin@free.fr",        phone: "+33 7 12 34 56 78", phoneVerified: false, budget: "680 000 €",   zone: "Paris 7e",           timeline: "Immédiat",  projectType: "Pied-à-terre",              status: "to_process",     score: "hot",  source: "ig",     assignedAgentId: null, campaign: "Luxe Rive Gauche",     createdAt: "2026-04-09", notes: "" },
+    { id: 4,  type: "buyer",  initials: "JM", tone: "#14B8A6", name: "Jean-Baptiste Moreau", email: "jb.moreau@gmail.com",    phone: "+33 6 23 45 67 89", phoneVerified: true,  budget: "275 000 €",   zone: "Boulogne",           timeline: "6–12 mois", projectType: "Résidence principale",     status: "contacted",      score: "cold", source: "fb",     assignedAgentId: 1,    campaign: "Boulogne Actifs",      createdAt: "2026-04-07", notes: "Rappeler lundi matin. Intéressé par T2 avec parking." },
+    { id: 5,  type: "buyer",  initials: "CR", tone: "#F97316", name: "Camille Rousseau",     email: "camille.r@icloud.com",   phone: "+33 7 34 56 78 90", phoneVerified: true,  budget: "520 000 €",   zone: "Paris 8e",           timeline: "1–3 mois",  projectType: "Investissement patrimonial", status: "to_process",     score: "warm", source: "ig",     assignedAgentId: null, campaign: "Prestige Madeleine",   createdAt: "2026-04-09", notes: "Investissement locatif. Cherche rentabilité > 4%." },
+    { id: 6,  type: "buyer",  initials: "AB", tone: "#EF4444", name: "Antoine Bernard",      email: "a.bernard@yahoo.fr",     phone: "+33 6 45 67 89 01", phoneVerified: true,  budget: "895 000 €",   zone: "Paris 17e",          timeline: "1–3 mois",  projectType: "Résidence principale",     status: "visit_planned",  score: "hot",  source: "ig",     assignedAgentId: 3,    campaign: "Prestige Paris 17e",   createdAt: "2026-04-05", notes: "Visite prévue mercredi 14h." },
+    { id: 7,  type: "buyer",  initials: "IC", tone: "#8B5CF6", name: "Isabelle Chen",        email: "ichen@proton.me",        phone: "+33 7 56 78 90 12", phoneVerified: true,  budget: "850 000 €",   zone: "Paris 6e",           timeline: "Immédiat",  projectType: "Résidence principale",     status: "qualified",      score: "hot",  source: "ig",     assignedAgentId: 1,    campaign: "Luxe Rive Gauche",     createdAt: "2026-04-06", notes: "Expatriée, retour en France. Budget confortable." },
+    { id: 8,  type: "buyer",  initials: "LF", tone: "#64748B", name: "Lucas Fontaine",       email: "l.fontaine@gmail.com",   phone: "+33 6 67 89 01 23", phoneVerified: false, budget: "195 000 €",   zone: "Paris 19e",          timeline: "6–12 mois", projectType: "Phase d'exploration",      status: "lost",           score: "cold", source: "web",    assignedAgentId: 2,    campaign: "—",                    createdAt: "2026-04-04", notes: "Budget insuffisant pour le secteur." },
+    { id: 9,  type: "buyer",  initials: "NE", tone: "#10B981", name: "Nadia El Amrani",      email: "nadia.ea@gmail.com",     phone: "+33 7 78 90 12 34", phoneVerified: true,  budget: "415 000 €",   zone: "Paris 11e",          timeline: "1–3 mois",  projectType: "Résidence principale",     status: "contacted",      score: "warm", source: "email",  assignedAgentId: null, campaign: "—",                    createdAt: "2026-04-08", notes: "Formulaire site web. Rappeler en soirée." },
+    { id: 10, type: "buyer",  initials: "FD", tone: "#E11D48", name: "François Dubois",      email: "fdubois@wanadoo.fr",     phone: "+33 6 89 01 23 45", phoneVerified: true,  budget: "1 200 000 €", zone: "Paris 16e",          timeline: "Immédiat",  projectType: "Résidence principale",     status: "offer_made",     score: "hot",  source: "ig",     assignedAgentId: 3,    campaign: "Prestige Paris 16e",   createdAt: "2026-04-07", notes: "Recherche hôtel particulier. Offre transmise mardi." },
+    { id: 11, type: "seller", initials: "CV", tone: "#F59E0B", name: "Christine Vidal",      email: "c.vidal@orange.fr",      phone: "+33 6 90 12 34 56", phoneVerified: true,  surface: 85,  rooms: 4, expectedPrice: "1 150 000 €", condition: "Bon état",      zone: "Paris 6e",           sellingTimeline: "3–6 mois", status: "estimation_sent", score: "warm", source: "ig",     assignedAgentId: 1,    campaign: "Estimation Rive Gauche", createdAt: "2026-04-06", notes: "Propriétaire depuis 12 ans. Souhaite aussi acheter après vente." },
+    { id: 12, type: "seller", initials: "PA", tone: "#7C3AED", name: "Philippe Arnaud",      email: "p.arnaud@icloud.com",    phone: "+33 7 01 23 45 67", phoneVerified: true,  surface: 120, rooms: 5, expectedPrice: "2 400 000 €", condition: "Rénové",         zone: "Saint-Tropez",       sellingTimeline: "Immédiat", status: "appointment",     score: "hot",  source: "manual", assignedAgentId: 2,    campaign: "—",                      createdAt: "2026-04-03", notes: "Villa avec vue mer. RDV samedi 10h sur site." },
+  ],
+};
+
+function setState(patch) {
+  Object.assign(state, patch);
+  render();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEAD DATA HELPERS — pure lookups, no DOM. Used by the drawer header
+   and by every Leads-page primitive that touches stage or type data.
+   Kept here (between state and renderers) so any renderer can use them.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* "buyer" → "Acquéreur", "seller" → "Vendeur". Falls back to the raw key. */
+function typeLabel(typeKey) {
+  return { buyer: "Acquéreur", seller: "Vendeur" }[typeKey] || typeKey;
+}
+
+/* Look up a stage label from the agency pipeline. "lost" is a terminal state
+   outside the pipeline array — renders as "Perdu". Unknown ids fall back to
+   the id itself so missing data is visible rather than silently blank. */
+function stageLabel(typeKey, stageId) {
+  if (stageId === "lost") return "Perdu";
+  const pipeline = state.agency.pipeline[typeKey] || [];
+  const stage = pipeline.find(s => s.id === stageId);
+  return stage ? stage.label : stageId;
+}
+
+/* Stage id → { bg, fg } pill colors. Values chosen to match DESIGN_SPEC §8
+   status semantics (new = blue, progress = violet, qualified = green,
+   converted = dark green, terminal-fail = red, amber for offer/mandate-signed).
+   Buyer and seller stage ids share colors where the semantic matches
+   ("contacted" same in both, "converted" ↔ "sold" both dark green, etc.).
+   If the status CSS tokens get formalized in :root later, swap hex for var(). */
+function stageColors(stageId) {
+  // bg   = soft tint (icon badge on default card, card surface on active)
+  // fg   = mid-saturation color (icon stroke, active-state label/accent)
+  // deep = dark variant for bold text on the tinted surface (active card's count)
+  return {
+    // Buyer pipeline
+    to_process:      { bg: "#E8ECFF", fg: "#5B6DFF", deep: "#2A3AB8" },  // blue — fresh
+    contacted:       { bg: "#EDE7FF", fg: "#6D48DB", deep: "#3E2595" },  // violet — in motion
+    qualified:       { bg: "#E4F4E9", fg: "#2F9D6F", deep: "#15653E" },  // green — qualified
+    visit_planned:   { bg: "#E8ECFF", fg: "#5B6DFF", deep: "#2A3AB8" },  // blue — progressing
+    offer_made:      { bg: "#FBF0DC", fg: "#8C5A08", deep: "#5A3A05" },  // amber — committed
+    converted:       { bg: "#D8EEDF", fg: "#1F7D54", deep: "#0D5034" },  // dark green — won
+    // Seller pipeline (shared where semantically equivalent)
+    estimation_sent: { bg: "#EDE7FF", fg: "#6D48DB", deep: "#3E2595" },  // violet
+    appointment:     { bg: "#E8ECFF", fg: "#5B6DFF", deep: "#2A3AB8" },  // blue
+    mandate_signed:  { bg: "#FBF0DC", fg: "#8C5A08", deep: "#5A3A05" },  // amber
+    sold:            { bg: "#D8EEDF", fg: "#1F7D54", deep: "#0D5034" },  // dark green
+    // Terminal
+    lost:            { bg: "#FDE7E7", fg: "#C44343", deep: "#7A1F1F" },  // red
+  }[stageId] || { bg: "#F4F4F6", fg: "#6E6B64", deep: "#3B3A35" };       // fallback = neutral
+}
+
+/* Price field differs by type — buyers declare a budget range, sellers
+   state an expected price. Both are pre-formatted strings with € suffix. */
+function leadPrice(lead) {
+  return lead.type === "seller" ? lead.expectedPrice : lead.budget;
+}
+
+/* Timeline likewise differs — buyer.timeline is purchase horizon,
+   seller.sellingTimeline is listing horizon. */
+function leadTimeline(lead) {
+  return lead.type === "seller" ? lead.sellingTimeline : lead.timeline;
+}
+
+/* French-short formatter for the ISO createdAt field. Stored ISO (sortable),
+   displayed French. When the backend lands and real timestamps come in,
+   this is the single function to upgrade (moment/intl). */
+const MONTHS_FR_SHORT = ["janv.", "févr.", "mars", "avr.", "mai", "juin",
+                         "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+function formatLeadDate(iso) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;  // malformed — show raw so bugs are visible
+  return `${String(d).padStart(2, "0")} ${MONTHS_FR_SHORT[m - 1]} ${y}`;
+}
+
+/* Extract numeric budget for sort. budget/expectedPrice are formatted strings
+   like "1 200 000 €" — strip non-digits and parse. Missing values sort last
+   (returned Infinity in asc, -Infinity conceptually in desc via sign flip).
+   Returns 0 if nothing numeric (unset). */
+function leadPriceNumeric(lead) {
+  const raw = lead.type === "seller" ? lead.expectedPrice : lead.budget;
+  if (!raw) return 0;
+  const digits = String(raw).replace(/\D/g, "");
+  return digits ? parseInt(digits, 10) : 0;
+}
+
+/* score sort order: hot > warm > cold (decreasing urgency).
+   Unknown scores sort last. */
+const SCORE_ORDER = { hot: 3, warm: 2, cold: 1 };
+function leadScoreOrder(lead) { return SCORE_ORDER[lead.score] || 0; }
+
+/* Agent name lookup for sort. Unassigned leads sort as empty string (top in
+   asc, bottom in desc). */
+function leadAgentName(lead) {
+  if (lead.assignedAgentId == null) return "";
+  const agent = state.team.find(t => t.id === lead.assignedAgentId);
+  return agent ? agent.name : "";
+}
+
+/* Sort comparator factory. Returns a function (a, b) => number per column.
+   Direction applied by the caller (multiply result by -1 for desc). */
+function leadComparator(column) {
+  switch (column) {
+    case "name":   return (a, b) => a.name.localeCompare(b.name,   "fr");
+    case "budget": return (a, b) => leadPriceNumeric(a) - leadPriceNumeric(b);
+    case "zone":   return (a, b) => (a.zone || "").localeCompare(b.zone || "", "fr");
+    case "score":  return (a, b) => leadScoreOrder(a) - leadScoreOrder(b);
+    case "agent":  return (a, b) => leadAgentName(a).localeCompare(leadAgentName(b), "fr");
+    case "date":   return (a, b) => (a.createdAt || "").localeCompare(b.createdAt || "");  // ISO string compare = chronological
+    default:       return (a, b) => a.id - b.id;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ICONS — inline SVG so we don't ship an icon lib.
+   Each icon is a function returning an SVG string with current color.
+   Stroke 1.5 for a thin-line feel matching the reference.
+   ═══════════════════════════════════════════════════════════════ */
+const icon = {
+  chevronDown: () => svg(`<path d="M6 9l6 6 6-6"/>`),
+  chevronRight:() => svg(`<path d="M9 6l6 6-6 6"/>`),
+  search:      () => svg(`<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>`),
+  bell:        () => svg(`<path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/>`),
+  plus:        () => svg(`<path d="M12 5v14M5 12h14"/>`),
+  menu:        () => svg(`<path d="M3 6h18M3 12h18M3 18h18"/>`),
+  moon:        () => svg(`<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>`),
+  help:        () => svg(`<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>`),
+  mapPin:      () => svg(`<path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0116 0z"/><circle cx="12" cy="10" r="3"/>`),
+  check:       () => svg(`<path d="M20 6L9 17l-5-5"/>`),
+  user:        () => svg(`<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>`),
+  logout:      () => svg(`<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>`),
+  close:       () => svg(`<path d="M18 6L6 18M6 6l12 12"/>`),
+  arrowLeft:   () => svg(`<path d="M19 12H5M12 19l-7-7 7-7"/>`),
+  phone:       () => svg(`<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>`),
+  messageCircle: () => svg(`<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>`),
+  send:        () => svg(`<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>`),
+
+  // nav
+  home:        () => svg(`<path d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V10.5z"/>`),
+  key:         () => svg(`<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.6 12.3L21 2l-3 3"/><path d="M15 6l3 3"/>`),
+  barChart:    () => svg(`<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>`),
+  users:       () => svg(`<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>`),
+  megaphone:   () => svg(`<path d="M3 11v2a4 4 0 004 4h1l5 4V3L8 7H7a4 4 0 00-4 4z"/><path d="M18 8v8"/><path d="M21 10v4"/>`),
+  archive:     () => svg(`<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8"/><path d="M10 12h4"/>`),
+  settings:    () => svg(`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>`),
+
+  // Stage-card icons (Step 2 Layer 2)
+  inbox:       () => svg(`<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>`),
+  target:      () => svg(`<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>`),
+  calendar:    () => svg(`<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`),
+  fileText:    () => svg(`<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`),
+  trophy:      () => svg(`<path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/>`),
+
+  // Table-action icons
+  sort:        () => svg(`<path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/>`),
+  filter:      () => svg(`<line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/>`),
+
+  // Column-sort indicators + bulk action icons (v0.9.0)
+  arrowUp:     () => svg(`<path d="M5 12l7-7 7 7"/><path d="M12 19V5"/>`),
+  arrowDown:   () => svg(`<path d="M19 12l-7 7-7-7"/><path d="M12 5v14"/>`),
+  chevronsUpDown: () => svg(`<path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/>`),
+  trash:       () => svg(`<path d="M3 6h18"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>`),
+  userCheck:   () => svg(`<path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>`),
+
+  // Source icons (drawer header, future Filter popover). Lucide-style
+  // monochrome stroke — keeps the aesthetic consistent with nav + actions
+  // and sidesteps the Meta brand-guideline question for colored logos.
+  instagram:   () => svg(`<rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>`),
+  facebook:    () => svg(`<path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>`),
+  globe:       () => svg(`<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>`),
+  mail:        () => svg(`<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>`),
+  userPlus:    () => svg(`<path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>`),
+};
+function svg(body, size=24) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DATA — nav map
+   ═══════════════════════════════════════════════════════════════ */
+const navGroups = [
+  {
+    label: "MAIN",
+    items: [
+      { id: "leads",     label: "Leads",          icon: "home",      badge: "24" },
+      { id: "dashboard", label: "Tableau de bord", icon: "barChart" },
+      { id: "agents",    label: "Agents",         icon: "users" },
+      { id: "campaigns", label: "Campagnes",      icon: "megaphone" },
+      { id: "database",  label: "Database",       icon: "archive" },
+    ],
+  },
+  {
+    label: "PARAMÈTRES",
+    items: [
+      { id: "settings", label: "Paramètres", icon: "settings" },
+      { id: "help",     label: "Aide",       icon: "help" },
+    ],
+  },
 ];
 
-/* ═══ RENDER MODULES ═══ */
-function renderModules() {
-  var el = document.getElementById('moduleMap');
-  var html = '';
-  MODULES.forEach(function(section) {
-    html += '<div class="mod-section rv">';
-    html += '<div class="mod-section-label">' + section.section + '</div>';
-    html += '<div class="mod-grid">';
-    section.items.forEach(function(m) {
-      var cls = 'mod-card is-planned';
-      if (m.status === 'live') cls = 'mod-card';
-      else if (m.status === 'proto') cls = 'mod-card';
-      var badgeCls = m.status === 'live' ? 'mod-badge live' : m.status === 'proto' ? 'mod-badge proto' : 'mod-badge planned';
-      var badgeText = m.status === 'live' ? 'Live' : m.status === 'proto' ? 'Prototype' : 'Planifié';
-      if (section.future) {
-        badgeText = 'Module 2+';
-      }
-      var essentialBadge = m.essential ? '<span class="mod-essential"><svg viewBox="0 0 24 24" fill="#3878ff" stroke="none"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>Essentiel</span>' : '';
-      var futureBadge = section.future ? '<span class="mod-future-label">Futur</span>' : '';
-      html += '<div class="' + cls + '">';
-      html += '<div class="mod-card-top"><span class="mod-card-name">' + m.name + '</span>' + essentialBadge + futureBadge + '<span class="' + badgeCls + '">' + badgeText + '</span></div>';
-      html += '<p class="mod-card-desc">' + m.desc + '</p>';
-      html += '</div>';
-    });
-    html += '</div></div>';
+const routeTitles = {
+  leads: "Leads",
+  dashboard: "Tableau de bord",
+  agents: "Agents",
+  campaigns: "Campagnes",
+  database: "Database",
+  settings: "Paramètres",
+  help: "Aide",
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENT-SHAPED RENDER FUNCTIONS
+   Each returns an HTML string. These map 1:1 to React components
+   if we ever port (see docs/DESIGN_PROTOCOL.md).
+   ═══════════════════════════════════════════════════════════════ */
+
+function renderBrand() {
+  return `
+    <div class="brand">
+      <div class="brand-left">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <span class="brand-name">Open House</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderAgencyAvatar(agency) {
+  if (agency.logo) {
+    return `<div class="agency-avatar" data-variant="logo"><img src="${agency.logo}" alt="${agency.name}" onerror="this.parentElement.removeAttribute('data-variant'); this.parentElement.innerHTML='${agency.initials}'"></div>`;
+  }
+  return `<div class="agency-avatar">${agency.initials}</div>`;
+}
+
+function renderAgencySwitcher(agency) {
+  const currentCity = agency.cities.find(c => c.id === agency.currentCityId);
+  const cityLabel = currentCity
+    ? `${icon.mapPin()}${currentCity.name}`
+    : "Toutes les villes";
+  const isOpen = state.agencySwitcherOpen;
+  return `
+    <div class="agency-switcher-wrap">
+      <div class="agency-switcher" data-action="toggle-agency-switcher" role="button" tabindex="0" aria-expanded="${isOpen}">
+        ${renderAgencyAvatar(agency)}
+        <div class="agency-text">
+          <div class="agency-name">${agency.name}</div>
+          <div class="agency-city">${cityLabel}</div>
+        </div>
+        ${icon.chevronDown()}
+      </div>
+      ${isOpen ? renderAgencyMenu(agency) : ""}
+    </div>
+  `;
+}
+
+function renderAgencyMenu(agency) {
+  const items = agency.cities.map(c => {
+    const active = c.id === agency.currentCityId;
+    return `
+      <div class="agency-menu-item" data-action="select-city" data-city-id="${c.id}" data-active="${active}" role="menuitem">
+        ${icon.mapPin()}
+        <span>${c.name}</span>
+        ${active ? icon.check() : ""}
+      </div>
+    `;
+  }).join("");
+  return `
+    <div class="agency-menu" role="menu">
+      <div class="agency-menu-label">Bureau actif</div>
+      ${items}
+    </div>
+  `;
+}
+
+function renderNavItem(item, active) {
+  const badge = item.badge
+    ? `<span class="nav-item-badge">${item.badge}</span>`
+    : "";
+  return `
+    <li>
+      <div class="nav-item" data-active="${active}" data-route="${item.id}" role="button" tabindex="0">
+        ${icon[item.icon]()}
+        <span class="nav-item-label">${item.label}</span>
+        ${badge}
+      </div>
+    </li>
+  `;
+}
+
+function renderNavGroup(group, activeRoute) {
+  return `
+    <div class="nav-group">
+      <div class="nav-section-label">${group.label}</div>
+      <ul class="nav-list">
+        ${group.items.map(it => renderNavItem(it, it.id === activeRoute)).join("")}
+      </ul>
+    </div>
+  `;
+}
+
+function renderDarkModeRow(on) {
+  return `
+    <div class="sidebar-row">
+      ${icon.moon()}
+      <span class="sidebar-row-label">Dark Mode</span>
+      <div class="switch" data-on="${on}" data-action="toggle-darkmode" role="switch" aria-checked="${on}"></div>
+    </div>
+  `;
+}
+
+function renderSidebarCard() {
+  return `
+    <div class="sidebar-card">
+      <div class="sidebar-card-title">Un retour à partager&nbsp;?</div>
+      <div class="sidebar-card-body">Bug, idée, frustration — on écoute tout.</div>
+      <a href="#" class="sidebar-card-cta">Envoyer un retour</a>
+    </div>
+  `;
+}
+
+function renderSidebar() {
+  return `
+    <aside class="sidebar" data-open="${state.sidebarOpen}">
+      ${renderBrand()}
+      ${renderAgencySwitcher(state.agency)}
+      ${navGroups.map(g => renderNavGroup(g, state.route)).join("")}
+      <div class="sidebar-spacer"></div>
+      ${renderDarkModeRow(state.darkMode)}
+      ${renderSidebarCard()}
+    </aside>
+  `;
+}
+
+/* ───── Topbar ───── */
+
+function renderUserMenu() {
+  const isOpen = state.userMenuOpen;
+  return `
+    <div class="user-menu-wrap">
+      <button class="user-menu" data-action="toggle-user-menu" aria-expanded="${isOpen}" aria-label="Profil">
+        ${renderAvatar(state.user.initials, state.user.tone, 32)}
+        ${icon.chevronDown()}
+      </button>
+      ${isOpen ? renderUserMenuDropdown() : ""}
+    </div>
+  `;
+}
+
+function renderUserMenuDropdown() {
+  const u = state.user;
+  return `
+    <div class="user-menu-dropdown" role="menu">
+      <div class="user-menu-identity">
+        ${renderAvatar(u.initials, u.tone, 40)}
+        <div class="user-menu-identity-text">
+          <div class="user-menu-name">${u.name}</div>
+          <div class="user-menu-email">${u.email}</div>
+          <div class="user-menu-role">${u.role} · ${state.agency.name}</div>
+        </div>
+      </div>
+      <div class="user-menu-divider"></div>
+      <div class="user-menu-item" data-action="go-profile" role="menuitem">
+        ${icon.user()}
+        <span>Mon compte</span>
+      </div>
+      <div class="user-menu-item" data-action="go-preferences" role="menuitem">
+        ${icon.settings()}
+        <span>Préférences</span>
+      </div>
+      <div class="user-menu-item" data-action="go-help" role="menuitem">
+        ${icon.help()}
+        <span>Aide &amp; support</span>
+      </div>
+      <div class="user-menu-divider"></div>
+      <div class="user-menu-item user-menu-item--danger" data-action="logout" role="menuitem">
+        ${icon.logout()}
+        <span>Déconnexion</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderAvatar(init, tone, size=28) {
+  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${tone};border-radius:50%;display:grid;place-items:center;color:#fff;font-size:${Math.max(10, Math.round(size * 0.38))}px;font-weight:600;flex-shrink:0;">${init}</div>`;
+}
+
+/**
+ * Button primitive. Every clickable text-action uses this.
+ * Icon-only buttons use `.icon-btn` directly (topbar plus/bell).
+ *
+ *   variant: "default" | "primary" | "ghost" | "danger"   (default: "default")
+ *   size:    "sm" | "md" | "lg"                           (default: "md")
+ *   block:   boolean — full-width                         (default: false)
+ *   icon:    SVG string (from icon.*()) placed before label
+ *   label:   button text
+ *   action:  data-action value to dispatch on click
+ *   disabled: boolean
+ *   extra:   additional class names (rare)
+ */
+function renderButton({ variant = "default", size = "md", block = false, icon = "", label = "", action = "", disabled = false, extra = "" } = {}) {
+  const classes = [
+    "btn",
+    variant !== "default" && `btn--${variant}`,
+    size !== "md" && `btn--${size}`,
+    block && "btn--block",
+    extra,
+  ].filter(Boolean).join(" ");
+  const attrs = [
+    `class="${classes}"`,
+    action ? `data-action="${action}"` : "",
+    disabled ? `disabled aria-disabled="true"` : "",
+  ].filter(Boolean).join(" ");
+  return `<button ${attrs}>${icon}${label ? `<span>${label}</span>` : ""}</button>`;
+}
+
+function renderAvatarStack(team, more) {
+  // Kept for future uses (assignment dropdowns, agent cards). Not currently rendered in topbar.
+  const avatars = team.map(m => renderAvatar(m.initials, m.tone)).join("");
+  const moreTag = more > 0 ? `<div class="avatar-more">+${more}</div>` : "";
+  return `<div class="avatar-stack">${avatars}${moreTag}</div>`;
+}
+
+function renderSearch() {
+  return `
+    <div class="search">
+      ${icon.search()}
+      <input type="text" placeholder="Rechercher..." aria-label="Rechercher" />
+    </div>
+  `;
+}
+
+function renderTopbar() {
+  return `
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="hamburger" data-action="open-sidebar" aria-label="Ouvrir le menu">${icon.menu()}</button>
+        <h1 class="page-title">${routeTitles[state.route] || ""}</h1>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-actions-icons">
+          <button class="icon-btn" data-action="add-lead" aria-label="Ajouter un prospect" title="Ajouter un prospect">${icon.plus()}</button>
+          <button class="icon-btn" aria-label="Notifications">
+            ${icon.bell()}
+            ${state.notifications > 0 ? `<span class="notif-badge">${state.notifications}</span>` : ""}
+          </button>
+        </div>
+        ${renderSearch()}
+        ${renderUserMenu()}
+      </div>
+    </header>
+  `;
+}
+
+/* ───── Leads content (Step 2 Layer 1) ─────
+   Route "leads" renders the Leads page. Every primitive below is
+   data-driven off state + the helpers defined earlier (stageLabel,
+   stageColors, typeLabel, leadPrice, leadTimeline). */
+
+/* Single source of truth for the filtered view. Returns the visible leads
+   plus the counts used by the context chip, pipeline bar, and filter tabs.
+
+   Counts discipline:
+   - typeCounts    = raw totals per type, ignoring search. Powers the
+                     context chip so "10 acquéreurs actifs / 3 vendeurs
+                     actifs" reads the honest volume even mid-search.
+   - stageCounts   = per-stage counts within current type + search. Powers
+                     both the pipeline bar and the filter tabs. Counts stay
+                     stable as the user clicks between tabs.
+   - lostCount     = same scope as stageCounts but for the terminal "lost".
+   - totalFiltered = type + search filtered total; shown in "Tous" tab. */
+function computeLeadsView() {
+  const type     = state.leadType;
+  const pipeline = state.agency.pipeline[type] || [];
+  const search   = state.leadsSearch.trim().toLowerCase();
+
+  // Raw per-type totals (ignore search — context chip must read true volume).
+  const typeCounts = {
+    buyer:  state.leads.filter(l => l.type === "buyer").length,
+    seller: state.leads.filter(l => l.type === "seller").length,
+  };
+
+  // Apply type + search to get the set all tab/pipeline counts are based on.
+  const baseFiltered = state.leads.filter(l => {
+    if (l.type !== type) return false;
+    if (!search) return true;
+    const hay = `${l.name} ${l.email} ${l.zone || ""}`.toLowerCase();
+    return hay.includes(search);
   });
-  el.innerHTML = html;
-  document.querySelectorAll('.mod-section.rv').forEach(function(el) { obs.observe(el); });
-}
 
+  // Count per stage id, plus terminal "lost".
+  const stageCounts = {};
+  pipeline.forEach(s => { stageCounts[s.id] = 0; });
+  let lostCount = 0;
+  baseFiltered.forEach(l => {
+    if (l.status === "lost") lostCount++;
+    else if (stageCounts[l.status] !== undefined) stageCounts[l.status]++;
+  });
 
+  // Apply filter tab on top of the base set.
+  // Layer 2 note: "all" excludes lost — the Statut column is gone, so a
+  // lost lead in the default view has no visual cue distinguishing it
+  // from an active one. Lost leads become reachable again when the
+  // Filter popover ships (it'll add a "Afficher les perdus" toggle that
+  // sets filterTab to "lost"). The "lost" code path is kept alive here
+  // so the popover can use it without refactor.
+  const visible = baseFiltered.filter(l => {
+    if (state.filterTab === "all")  return l.status !== "lost";
+    if (state.filterTab === "lost") return l.status === "lost";
+    return l.status === state.filterTab;
+  });
 
-/* ═══ FLYING LOGO ═══ */
-var fLogo=document.getElementById('fLogo'),hGhost=document.getElementById('hGhost'),navAnchor=document.getElementById('navAnchor'),navEl=document.getElementById('nav');
-var hero={x:0,y:0,size:0,ls:-2},navPos={x:0,y:0,size:18,ls:-0.5},ready=false,SCROLL_START=100,SCROLL_END=300;
-function measure(){var s=window.scrollY,hr=hGhost.getBoundingClientRect();hero.x=hr.left;hero.y=hr.top+s;hero.size=parseFloat(getComputedStyle(hGhost).fontSize);fLogo.style.fontSize=hero.size+'px';fLogo.style.letterSpacing=hero.ls+'px';var heroW=fLogo.offsetWidth;var scaleRatio=navPos.size/hero.size;var navW=heroW*scaleRatio;var nr=navAnchor.getBoundingClientRect();navPos.x=nr.left+nr.width/2-navW/2;navPos.y=Math.round((64-navPos.size)/2);ready=true}
-function ease(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1}
-function renderLogo(){if(!ready){requestAnimationFrame(renderLogo);return}var s=window.scrollY,raw=Math.max(0,Math.min(1,(s-SCROLL_START)/(SCROLL_END-SCROLL_START))),t=ease(raw),r=navPos.size/hero.size,sc=1+(r-1)*t,hy=hero.y-s,x=hero.x+(navPos.x-hero.x)*t,y=hy+(navPos.y-hy)*t,ls=hero.ls+(navPos.ls-hero.ls)*t;if(raw>=1){x=navPos.x;y=navPos.y;sc=r;ls=navPos.ls}if(raw<=0){x=hero.x;y=hy;sc=1;ls=hero.ls}if(y<0)y=navPos.y;fLogo.style.transform='translate3d('+x.toFixed(1)+'px,'+y.toFixed(1)+'px,0) scale('+sc.toFixed(5)+')';fLogo.style.letterSpacing=ls.toFixed(2)+'px';if(raw>.05)navEl.classList.add('scrolled');else navEl.classList.remove('scrolled');requestAnimationFrame(renderLogo)}
-function initLogo(){measure();renderLogo()}
-window.addEventListener('resize',measure);
-var lastVH=window.innerHeight;setInterval(function(){if(window.innerHeight!==lastVH){lastVH=window.innerHeight;measure()}},300);
-document.fonts.ready.then(function(){setTimeout(initLogo,50)});if(document.readyState==='complete')initLogo();else window.addEventListener('load',initLogo);
-
-/* ═══ MOBILE NAV ═══ */
-var navMenu=document.getElementById('nLM'),navPill=document.getElementById('navPill');
-var chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
-function scramble(el,final,dur){var len=final.length,t0s=performance.now();function step(now){var t=Math.min(1,(now-t0s)/dur),r='';for(var i=0;i<len;i++)r+=t>((i+1)/len)*.7?final[i]:chars[Math.floor(Math.random()*chars.length)];el.textContent=r;if(t<1)requestAnimationFrame(step);else el.textContent=final}requestAnimationFrame(step)}
-function openMobileNav(){navMenu.classList.add('op');navMenu.classList.remove('frosted');navPill.classList.add('active');var links=navMenu.querySelectorAll('a'),total=links.length*60+400;links.forEach(function(a,i){setTimeout(function(){scramble(a,a.getAttribute('data-text'),400)},i*60)});setTimeout(function(){navMenu.classList.add('frosted')},total)}
-function closeMobileNav(){navMenu.classList.remove('op','frosted');navPill.classList.remove('active')}
-function toggleMobileNav(){navMenu.classList.contains('op')?closeMobileNav():openMobileNav()}
-navPill.addEventListener('click',toggleMobileNav);
-document.querySelectorAll('.nl-mobile a,.nav-left a,.nav-right a').forEach(function(a){a.addEventListener('click',closeMobileNav)});
-window.addEventListener('resize',function(){if(innerWidth>960)closeMobileNav()});
-
-/* ═══ PARTICLES ═══ */
-var c=document.getElementById('P'),ctx=c.getContext('2d'),pts=[],mx={x:-1e3,y:-1e3},WW,HH;
-function rs(){WW=c.width=innerWidth;HH=c.height=innerHeight}rs();addEventListener('resize',rs);
-document.addEventListener('mousemove',function(e){mx.x=e.clientX;mx.y=e.clientY});
-var cx=WW/2,cy=HH/2,t0=performance.now();
-function Pt(){this.tx=Math.random()*WW;this.ty=Math.random()*HH;this.x=cx;this.y=cy;this.delay=Math.random()*300;var a=Math.random()*Math.PI*2,f=5+Math.random()*10;this.vx=Math.cos(a)*f;this.vy=Math.sin(a)*f;this.r=Math.random()*1.5+.5;this.a=Math.random()*.25+.04;this.born=false;this.s=false;this.trail=[]}
-Pt.prototype.u=function(){var elapsed=performance.now()-t0;if(!this.born){if(elapsed>this.delay)this.born=true;else return}if(!this.s){this.vx*=.96;this.vy*=.96;this.x+=this.vx;this.y+=this.vy;this.trail.push({x:this.x,y:this.y});if(this.trail.length>8)this.trail.shift();if(elapsed>600){this.x+=(this.tx-this.x)*.04;this.y+=(this.ty-this.y)*.04}var dx=this.x-this.tx,dy=this.y-this.ty;if(Math.abs(this.vx)<.15&&Math.abs(this.vy)<.15&&Math.sqrt(dx*dx+dy*dy)<3){this.s=true;this.x=this.tx;this.y=this.ty;this.vx=(Math.random()-.5)*.3;this.vy=(Math.random()-.5)*.3;this.trail=[]}}else{this.x+=this.vx;this.y+=this.vy;var dx=this.x-mx.x,dy=this.y-mx.y,d=Math.sqrt(dx*dx+dy*dy);if(d<120){var f=(120-d)/120*.8;this.vx+=dx/d*f;this.vy+=dy/d*f}this.vx*=.98;this.vy*=.98;if(this.x<-10)this.x=WW+10;if(this.x>WW+10)this.x=-10;if(this.y<-10)this.y=HH+10;if(this.y>HH+10)this.y=-10}};
-Pt.prototype.d=function(){if(!this.born)return;if(!this.s&&this.trail.length>1){for(var i=1;i<this.trail.length;i++){ctx.beginPath();ctx.moveTo(this.trail[i-1].x,this.trail[i-1].y);ctx.lineTo(this.trail[i].x,this.trail[i].y);ctx.strokeStyle='rgba(0,255,170,'+(i/this.trail.length*.15)+')';ctx.lineWidth=.5;ctx.stroke()}}ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle='rgba(0,255,170,'+this.a+')';ctx.fill()};
-var cnt=Math.min(Math.floor(WW*HH/10000),140);
-function dl(){for(var i=0;i<pts.length;i++){if(!pts[i].s)continue;for(var j=i+1;j<pts.length;j++){if(!pts[j].s)continue;var dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<100){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle='rgba(0,255,170,'+(0.12*(1-d/100))+')';ctx.lineWidth=.5;ctx.stroke()}}}}
-function an(){ctx.clearRect(0,0,WW,HH);for(var i=0;i<pts.length;i++){pts[i].u();pts[i].d()}dl();requestAnimationFrame(an)}
-function startMainParticles(){t0=performance.now();for(var i=0;i<cnt;i++)pts.push(new Pt());an()}
-
-/* ═══ REVEALS ═══ */
-var obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vi');e.target.classList.add('vis')}})},{threshold:.12});
-document.querySelectorAll('.rv,.rv-stagger,.fly-in,.fly-steps,section').forEach(function(el){obs.observe(el)});
-document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();closeMobileNav();var t=document.querySelector(a.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth'})})});
-
-/* ═══ PROXIMITY LIGHT ═══ */
-var fbBox=document.getElementById('fbBox');
-if(fbBox){fbBox.addEventListener('mousemove',function(e){var r=fbBox.getBoundingClientRect();fbBox.style.setProperty('--px',(e.clientX-r.left)+'px');fbBox.style.setProperty('--py',(e.clientY-r.top)+'px')});}
-
-/* ═══ INIT MODULES ═══ */
-renderModules();
-
-/* ═══ FEEDBACK SYSTEM — LOCKED ═══ */
-/* Feedback form, feed, CSV loading, and submit functions are disabled
-   until the first shell design is delivered. All code will be restored
-   when the Google Sheet is connected. */
-
-/* ═══ CHANGELOG MORE/LESS ═══ */
-var clExpanded = false;
-function toggleOlderChangelog() {
-  var older = document.getElementById('clOlder');
-  var txt = document.getElementById('clMoreTxt');
-  var line = document.getElementById('clMoreLine');
-  clExpanded = !clExpanded;
-  if (clExpanded) {
-    older.style.display = '';
-    txt.textContent = 'Less';
-    line.style.transform = 'rotate(180deg)';
-  } else {
-    older.style.display = 'none';
-    txt.textContent = 'More';
-    line.style.transform = '';
+  // Apply column sort. null = default order (by state.leads insertion = by id).
+  // Sort happens LAST so filter + search don't depend on sort direction.
+  if (state.leadsSort) {
+    const cmp = leadComparator(state.leadsSort.column);
+    const factor = state.leadsSort.direction === "asc" ? 1 : -1;
+    visible.sort((a, b) => cmp(a, b) * factor);
   }
+
+  return {
+    visible,
+    pipeline,
+    type,
+    search,
+    counts: { stageCounts, lostCount, totalFiltered: baseFiltered.length, typeCounts },
+  };
 }
 
-/* ═══ LOGIN GATE ═══ */
-var PW='leadsreport';
-var pwUnlocked=sessionStorage.getItem('oh_pw_ok')==='1';
-if(pwUnlocked){document.getElementById('pwGate').style.display='none';document.body.style.overflow='auto';document.body.style.animation='pageIn 1s ease .2s forwards';startMainParticles()}
-else{
-  var pc=document.getElementById('pwParticles'),pctx=pc.getContext('2d'),ppts=[],pmx={x:-1e3,y:-1e3},pWW,pHH;
-  function prs(){pWW=pc.width=innerWidth;pHH=pc.height=innerHeight}prs();addEventListener('resize',prs);
-  document.addEventListener('mousemove',function(e){pmx.x=e.clientX;pmx.y=e.clientY});
-  var pcx=pWW/2,pcy=pHH/2,pt0=performance.now();
-  function PPt(){this.tx=Math.random()*pWW;this.ty=Math.random()*pHH;this.x=pcx;this.y=pcy;this.delay=Math.random()*300;var a=Math.random()*Math.PI*2,f=5+Math.random()*10;this.vx=Math.cos(a)*f;this.vy=Math.sin(a)*f;this.r=Math.random()*1.5+.5;this.a=Math.random()*.25+.04;this.born=false;this.s=false;this.trail=[]}
-  PPt.prototype.u=function(){var elapsed=performance.now()-pt0;if(!this.born){if(elapsed>this.delay)this.born=true;else return}if(!this.s){this.vx*=.96;this.vy*=.96;this.x+=this.vx;this.y+=this.vy;this.trail.push({x:this.x,y:this.y});if(this.trail.length>8)this.trail.shift();if(elapsed>600){this.x+=(this.tx-this.x)*.04;this.y+=(this.ty-this.y)*.04}var dx=this.x-this.tx,dy=this.y-this.ty;if(Math.abs(this.vx)<.15&&Math.abs(this.vy)<.15&&Math.sqrt(dx*dx+dy*dy)<3){this.s=true;this.x=this.tx;this.y=this.ty;this.vx=(Math.random()-.5)*.3;this.vy=(Math.random()-.5)*.3;this.trail=[]}}else{this.x+=this.vx;this.y+=this.vy;var dx=this.x-pmx.x,dy=this.y-pmx.y,d=Math.sqrt(dx*dx+dy*dy);if(d<120){var f=(120-d)/120*.8;this.vx+=dx/d*f;this.vy+=dy/d*f}this.vx*=.98;this.vy*=.98;if(this.x<-10)this.x=pWW+10;if(this.x>pWW+10)this.x=-10;if(this.y<-10)this.y=pHH+10;if(this.y>pHH+10)this.y=-10}};
-  PPt.prototype.d=function(){if(!this.born)return;if(!this.s&&this.trail.length>1){for(var i=1;i<this.trail.length;i++){pctx.beginPath();pctx.moveTo(this.trail[i-1].x,this.trail[i-1].y);pctx.lineTo(this.trail[i].x,this.trail[i].y);pctx.strokeStyle='rgba(0,255,170,'+(i/this.trail.length*.15)+')';pctx.lineWidth=.5;pctx.stroke()}}pctx.beginPath();pctx.arc(this.x,this.y,this.r,0,Math.PI*2);pctx.fillStyle='rgba(0,255,170,'+this.a+')';pctx.fill()};
-  var pcnt=Math.min(Math.floor(pWW*pHH/12000),100);for(var i=0;i<pcnt;i++)ppts.push(new PPt());
-  function pdl(){for(var i=0;i<ppts.length;i++){if(!ppts[i].s)continue;for(var j=i+1;j<ppts.length;j++){if(!ppts[j].s)continue;var dx=ppts[i].x-ppts[j].x,dy=ppts[i].y-ppts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<100){pctx.beginPath();pctx.moveTo(ppts[i].x,ppts[i].y);pctx.lineTo(ppts[j].x,ppts[j].y);pctx.strokeStyle='rgba(0,255,170,'+(0.12*(1-d/100))+')';pctx.lineWidth=.5;pctx.stroke()}}}}
-  var pwAnimId;function pan(){pctx.clearRect(0,0,pWW,pHH);for(var i=0;i<ppts.length;i++){ppts[i].u();ppts[i].d()}pdl();pwAnimId=requestAnimationFrame(pan)}pan();
+/* Compact segmented pill toggle. Active option's text + icon recolor via
+   --type-accent (set on the .leads parent's mode-buyer / mode-seller class,
+   so the whole surface re-palettes in one place when the toggle flips). */
+function renderLeadsToggle() {
+  const opt = (typeKey, iconKey, label) => {
+    const active = state.leadType === typeKey;
+    return `
+      <button class="leads-toggle-tab"
+              role="tab"
+              aria-selected="${active}"
+              data-action="set-lead-type"
+              data-type="${typeKey}">
+        ${icon[iconKey]()}
+        <span>${label}</span>
+      </button>
+    `;
+  };
+  return `
+    <div class="leads-toggle" role="tablist" aria-label="Type de lead">
+      ${opt("buyer",  "home", "Acquéreurs")}
+      ${opt("seller", "key",  "Vendeurs")}
+    </div>
+  `;
 }
 
-function pwDots(val){
-  var d=document.getElementById('pwDisplay');
-  d.className=val.length?'pw-dots':'pw-placeholder';
-  d.textContent=val.length?'\u25CF'.repeat(val.length):'Mot de passe';
+/* Context chip: shows raw active-type count in words. Lives next to the
+   toggle so the type-aware signal reinforces the toggle rather than
+   fighting it. Grammar handles singular/plural. */
+function renderLeadsContextChip(typeKey, count) {
+  const noun    = typeKey === "buyer" ? "acquéreur" : "vendeur";
+  const plural  = count === 1 ? "" : "s";
+  const adj     = count === 1 ? "actif" : "actifs";
+  const iconKey = typeKey === "buyer" ? "home" : "key";
+  return `
+    <span class="leads-context-chip" aria-label="${count} ${noun}${plural} ${adj}">
+      ${icon[iconKey]()}
+      <span>${count} ${noun}${plural} ${adj}</span>
+    </span>
+  `;
 }
 
-function pwCheck(){
-  var val=document.getElementById('pwInput').value.trim();
-  var error=document.getElementById('pwError');
-  if(!val)return;
-  if(val===PW){
-    sessionStorage.setItem('oh_pw_ok','1');
-    var gate=document.getElementById('pwGate');
-    gate.style.opacity='0';
-    if(typeof pwAnimId!=='undefined')cancelAnimationFrame(pwAnimId);
-    document.body.style.overflow='auto';document.body.style.animation='pageIn 1s ease .2s forwards';startMainParticles();setTimeout(function(){gate.style.display='none';measure()},400);
-  } else {
-    error.textContent='Mot de passe incorrect';
-    document.getElementById('pwInput').value='';
-    pwDots('');
-    var modal=document.getElementById('pwModal');
-    modal.style.animation='none';
-    void modal.offsetHeight;
-    modal.style.animation='pwShake .4s ease';
-    document.getElementById('pwField').style.borderColor='rgba(255,77,77,.4)';
-    setTimeout(function(){
-      error.textContent='';
-      document.getElementById('pwField').style.borderColor='';
-    },2000);
+/* In-page search. Distinct from topbar search (topbar is hidden on the
+   Leads route via body[data-route="leads"] CSS — see §topbar-search
+   suppression near the top of the stylesheet). Input events delegated. */
+function renderLeadsSearch() {
+  const value = state.leadsSearch.replace(/"/g, "&quot;");
+  return `
+    <div class="leads-search">
+      ${icon.search()}
+      <input type="text"
+             placeholder="Rechercher par nom, email, zone…"
+             aria-label="Rechercher dans les leads"
+             value="${value}"
+             data-action="filter-search"
+             autocomplete="off" />
+    </div>
+  `;
+}
+
+/* Stage KPI cards (Step 2 Layer 2): one Prodex-style card per pipeline
+   stage for the active type. Each card shows an icon badge (circular,
+   stage-tinted), label, and count. Clicking a card filters the table to
+   that stage; clicking the active card deselects (back to "all").
+   This row replaces both the Layer 1 pipeline bar AND the filter tabs
+   row — the KPI cards ARE the filter. Tous = no card selected (default).
+   Perdu: terminal state, not in this row — will live inside the Filter
+   button popover (see renderLeadsTable). */
+function renderStageCards(pipeline, stageCounts, activeStage) {
+  const stageIcons = {
+    to_process:      "inbox",
+    contacted:       "phone",
+    qualified:       "target",
+    visit_planned:   "calendar",
+    offer_made:      "fileText",
+    converted:       "trophy",
+    estimation_sent: "fileText",
+    appointment:     "calendar",
+    mandate_signed:  "fileText",
+    sold:            "trophy",
+  };
+  const cards = pipeline.map(stage => {
+    const c = stageColors(stage.id);
+    const n = stageCounts[stage.id] || 0;
+    const active = activeStage === stage.id;
+    const iconKey = stageIcons[stage.id] || "inbox";
+    return `
+      <button class="stage-card ${active ? "stage-card--active" : ""}"
+              data-action="set-filter-tab"
+              data-tab-id="${stage.id}"
+              aria-pressed="${active}"
+              style="--stage-bg:${c.bg};--stage-fg:${c.fg};--stage-deep:${c.deep};">
+        <span class="stage-card-icon">${icon[iconKey]()}</span>
+        <span class="stage-card-text">
+          <span class="stage-card-label">${stage.label}</span>
+          <span class="stage-card-count">${n}</span>
+        </span>
+      </button>
+    `;
+  }).join("");
+  return `<div class="stage-cards" role="group" aria-label="Filtrer par étape du pipeline">${cards}</div>`;
+}
+
+/* Score chip: Chaud / Tiède / Froid with a colored dot. */
+function renderScoreChip(score) {
+  const map = {
+    hot:  { label: "Chaud", mod: "hot"  },
+    warm: { label: "Tiède", mod: "warm" },
+    cold: { label: "Froid", mod: "cold" },
+  };
+  const m = map[score] || { label: score || "—", mod: "none" };
+  return `<span class="score-chip score-chip--${m.mod}"><span class="score-chip-dot"></span>${m.label}</span>`;
+}
+
+/* Source icon: compact branded tile. Pure CSS + initial letter — we avoid
+   shipping brand SVGs both for trademark hygiene and for a consistent
+   visual weight across sources at 18px. */
+function renderSourceIcon(source) {
+  // Upgraded from text-char to SVG chip (v0.10). Used in drawer header;
+  // future Filter popover + re-added table column will reuse this primitive.
+  const map = {
+    ig:     { title: "Instagram",    iconKey: "instagram" },
+    fb:     { title: "Facebook",     iconKey: "facebook"  },
+    web:    { title: "Site web",     iconKey: "globe"     },
+    email:  { title: "Email",        iconKey: "mail"      },
+    manual: { title: "Ajout manuel", iconKey: "userPlus"  },
+  };
+  const m = map[source] || { title: source || "Inconnu", iconKey: "help" };
+  return `<span class="source-chip source-chip--${source}" title="${m.title}" aria-label="Source : ${m.title}">${icon[m.iconKey]()}</span>`;
+}
+
+/* Empty states. kind="no-sellers" when type=seller and no seller leads
+   exist at all. kind="no-match" when filter + search returned nothing. */
+function renderLeadsEmptyState(kind) {
+  if (kind === "no-sellers") {
+    return `
+      <div class="leads-empty">
+        <div class="leads-empty-title">Aucun vendeur pour l'instant</div>
+        <div class="leads-empty-body">Les leads vendeurs arrivent via les formulaires Meta marqués « vendeur » ou par ajout manuel. Utilisez le bouton « + » en haut à droite pour saisir un vendeur.</div>
+      </div>
+    `;
   }
+  return `
+    <div class="leads-empty">
+      <div class="leads-empty-title">Aucun résultat</div>
+      <div class="leads-empty-body">Aucun lead ne correspond à ce filtre. Effacez la recherche, déselectionnez l'étape active, ou essayez un autre critère.</div>
+    </div>
+  `;
 }
+
+/* Single table row. Click anywhere on the row opens the drawer for that
+   lead — uses the existing open-drawer action. Selected row carries
+   data-selected for a subtle highlight. Agent column falls back to an
+   em-dash when unassigned; same convention as the Layer 1 card. */
+/* Sortable column header. `key` matches the leadComparator switch keys +
+   the column width modifier class. Clickable. Displays a tri-state
+   indicator: unsorted → muted double-chevron; active asc → arrow up;
+   active desc → arrow down. Click cycles desc → asc → unsorted. */
+function renderColumnHeader(key, label, colClass) {
+  const sort = state.leadsSort;
+  const isActive = sort && sort.column === key;
+  let indicator;
+  if (!isActive) {
+    indicator = `<span class="leads-col-sort leads-col-sort--idle">${icon.chevronsUpDown()}</span>`;
+  } else if (sort.direction === "desc") {
+    indicator = `<span class="leads-col-sort leads-col-sort--active">${icon.arrowDown()}</span>`;
+  } else {
+    indicator = `<span class="leads-col-sort leads-col-sort--active">${icon.arrowUp()}</span>`;
+  }
+  return `
+    <button class="leads-col ${colClass} leads-col-header"
+            data-action="sort-column"
+            data-column="${key}"
+            aria-sort="${isActive ? sort.direction + "ending" : "none"}">
+      <span>${label}</span>${indicator}
+    </button>
+  `;
+}
+
+/* Single table row. In default mode, click = open drawer. In select mode,
+   click = toggle selection for that lead (drawer NOT opened). The mode
+   branch happens in the click handler, not here — the row always carries
+   data-lead-id + a dual-purpose data-action. */
+function renderLeadRow(lead) {
+  const selected     = state.drawer?.leadId === lead.id;
+  const picked       = state.selectedLeadIds.includes(lead.id);
+  const agent        = lead.assignedAgentId != null
+    ? state.team.find(t => t.id === lead.assignedAgentId)
+    : null;
+  const agentCell    = agent
+    ? `<span class="leads-row-agent" title="${agent.name}">${renderAvatar(agent.initials, agent.tone, 26)}</span>`
+    : `<span class="leads-row-agent leads-row-agent--none" aria-label="Non assigné">—</span>`;
+  const zone         = lead.zone || "—";
+  const timeline     = leadTimeline(lead);
+  const checkboxCell = state.selectionMode
+    ? `<div class="leads-col leads-col--check"><span class="leads-checkbox ${picked ? "leads-checkbox--on" : ""}" aria-hidden="true">${picked ? icon.check() : ""}</span></div>`
+    : "";
+  return `
+    <div class="leads-row${picked ? " leads-row--picked" : ""}"
+         data-action="row-click"
+         data-lead-id="${lead.id}"
+         data-selected="${selected}"
+         role="button" tabindex="0">
+      ${checkboxCell}
+      <div class="leads-col leads-col--nom">
+        ${renderAvatar(lead.initials, lead.tone, 34)}
+        <div class="leads-col-nom-text">
+          <div class="leads-col-nom-name">${lead.name}</div>
+          <div class="leads-col-nom-email">${lead.email}</div>
+        </div>
+      </div>
+      <div class="leads-col leads-col--budget">${leadPrice(lead)}</div>
+      <div class="leads-col leads-col--zone">${zone}${timeline ? ` · ${timeline}` : ""}</div>
+      <div class="leads-col leads-col--score">${renderScoreChip(lead.score)}</div>
+      <div class="leads-col leads-col--agent">${agentCell}</div>
+      <div class="leads-col leads-col--date">${formatLeadDate(lead.createdAt)}</div>
+    </div>
+  `;
+}
+
+/* Bulk action bar: pinned to the bottom of the table card when at least
+   one lead is selected. Slides in from below. Actions are stubs for now
+   (popovers ship as a follow-up), but the selection semantics are live. */
+function renderBulkActionBar() {
+  const n = state.selectedLeadIds.length;
+  if (n === 0) return "";
+  const countText = `${n} sélectionné${n === 1 ? "" : "s"}`;
+  return `
+    <div class="leads-bulk-bar" role="region" aria-label="Actions groupées">
+      <div class="leads-bulk-bar-count">
+        <span class="leads-bulk-bar-dot" aria-hidden="true"></span>
+        ${countText}
+      </div>
+      <div class="leads-bulk-bar-actions">
+        <button class="leads-bulk-btn" data-action="bulk-assign">${icon.userCheck()}<span>Assigner</span></button>
+        <button class="leads-bulk-btn" data-action="bulk-change-status">${icon.target()}<span>Changer le statut</span></button>
+        <button class="leads-bulk-btn" data-action="bulk-archive">${icon.archive()}<span>Archiver</span></button>
+        <button class="leads-bulk-btn leads-bulk-btn--danger" data-action="bulk-delete">${icon.trash()}<span>Supprimer</span></button>
+      </div>
+      <button class="leads-bulk-bar-clear" data-action="clear-selection" aria-label="Effacer la sélection">${icon.close()}</button>
+    </div>
+  `;
+}
+
+/* Leads table card: contained Prodex-style card. Header is now minimal —
+   just the title "Liste des leads" (no icon, no meta line), search, and
+   the two action buttons (Sélectionner / Annuler, then Filtrer). When in
+   select mode, the leftmost column becomes a checkbox column — header
+   gets a "select all visible" checkbox, rows get per-row checkboxes.
+   When selection > 0, a bulk action bar renders at the bottom of the card. */
+function renderLeadsTable(view) {
+  const totalVisible     = view.visible.length;
+  const visibleIds       = view.visible.map(l => l.id);
+  const filterActive     = state.filterTab !== "all" && state.filterTab !== "lost";
+  const filterBadge      = filterActive
+    ? `<span class="leads-table-btn-badge">1</span>`
+    : "";
+  // "Select all visible" is on when every visible id is already picked.
+  const allVisiblePicked = totalVisible > 0 && visibleIds.every(id => state.selectedLeadIds.includes(id));
+  const selectBtnLabel   = state.selectionMode ? "Annuler" : "Sélectionner";
+  const selectBtnClass   = state.selectionMode
+    ? "leads-table-btn leads-table-btn--active"
+    : "leads-table-btn";
+
+  const checkHead = state.selectionMode
+    ? `<div class="leads-col leads-col--check leads-col-header leads-col-header--check"
+            data-action="toggle-select-all"
+            role="columnheader"
+            aria-label="Tout sélectionner">
+        <span class="leads-checkbox ${allVisiblePicked ? "leads-checkbox--on" : ""}">${allVisiblePicked ? icon.check() : ""}</span>
+      </div>`
+    : "";
+
+  const noSellers = view.type === "seller" && view.counts.typeCounts.seller === 0;
+  const body = noSellers
+    ? renderLeadsEmptyState("no-sellers")
+    : totalVisible === 0
+      ? renderLeadsEmptyState("no-match")
+      : `
+        <div class="leads-table-head${state.selectionMode ? " leads-table-head--selectable" : ""}" role="row">
+          ${checkHead}
+          ${renderColumnHeader("name",   "Nom",    "leads-col--nom")}
+          ${renderColumnHeader("budget", "Budget", "leads-col--budget")}
+          ${renderColumnHeader("zone",   "Zone",   "leads-col--zone")}
+          ${renderColumnHeader("score",  "Score",  "leads-col--score")}
+          ${renderColumnHeader("agent",  "Agent",  "leads-col--agent")}
+          ${renderColumnHeader("date",   "Date",   "leads-col--date")}
+        </div>
+        <div class="leads-table-body${state.selectionMode ? " leads-table-body--selectable" : ""}" role="rowgroup">
+          ${view.visible.map(renderLeadRow).join("")}
+        </div>
+      `;
+
+  return `
+    <div class="leads-table-card">
+      <div class="leads-table-header">
+        <div class="leads-table-header-title">
+          <span class="leads-table-title">Liste des leads</span>
+        </div>
+        <div class="leads-table-header-actions">
+          ${renderLeadsSearch()}
+          <button class="${selectBtnClass}" data-action="toggle-select-mode">
+            ${icon.check()}<span>${selectBtnLabel}</span>
+          </button>
+          <button class="leads-table-btn" data-action="open-filter-panel" aria-label="Filtrer">
+            ${icon.filter()}<span>Filtrer</span>${filterBadge}
+          </button>
+        </div>
+      </div>
+      ${body}
+      ${renderBulkActionBar()}
+    </div>
+  `;
+}
+
+/* Leads page composition. Wrapped in a .leads root that carries a
+   mode-buyer or mode-seller class — every type-accent CSS rule reads
+   from custom properties set by that class, so the whole surface
+   re-palettes in one place when the user flips the toggle. */
+function renderLeadsContent() {
+  const view      = computeLeadsView();
+  const modeClass = `mode-${state.leadType}`;
+  const typeCount = view.counts.typeCounts[state.leadType];
+  return `
+    <div class="leads ${modeClass}">
+      <div class="leads-topedge" aria-hidden="true"></div>
+      <div class="leads-toggle-row">
+        ${renderLeadsToggle()}
+        ${renderLeadsContextChip(state.leadType, typeCount)}
+        <span class="leads-updated-meta">Mis à jour il y a 2 min</span>
+      </div>
+      ${renderStageCards(view.pipeline, view.counts.stageCounts, state.filterTab)}
+      ${renderLeadsTable(view)}
+    </div>
+  `;
+}
+
+function renderContent() {
+  return `
+    <main class="content">
+      ${renderRouteContent()}
+    </main>
+  `;
+}
+
+function renderRouteContent() {
+  if (state.route === "leads") return renderLeadsContent();
+  return renderRouteComingSoon();
+}
+
+function renderRouteComingSoon() {
+  const labels = {
+    dashboard: "Tableau de bord",
+    agents:    "Agents",
+    campaigns: "Campagnes",
+    database:  "Database",
+    settings:  "Paramètres",
+    help:      "Aide",
+  };
+  const title = labels[state.route] || state.route;
+  return `
+    <div class="empty-state">
+      <div class="empty-state-left">
+        <div class="empty-state-title">${title}</div>
+        <div class="empty-state-body">Page à construire. Cette section sera implémentée après l'étape 2 (Leads) et l'étape 3 (tiroir).</div>
+      </div>
+      <div class="empty-state-chip">v0.9.0</div>
+    </div>
+  `;
+}
+
+function isMobile() {
+  // Matches the breakpoint used in the @media query at the bottom of <style>.
+  return window.matchMedia("(max-width: 768px)").matches;
+}
+
+function renderDrawer() {
+  // Mounted conditionally — only renders the DOM when state.drawer is set.
+  // Sliding animation handled by the data-open attribute on the container.
+  // Opened from the Leads page by clicking a lead card (data-action="open-drawer").
+  if (!state.drawer) return "";
+  const lead = state.leads.find(l => l.id === state.drawer.leadId);
+  if (!lead) return "";
+  const activeTab = state.drawer.tab;
+  const tabs = [
+    { id: "infos",         label: "Infos" },
+    { id: "qualification", label: "Qualification" },
+    { id: "activite",      label: "Activité" },
+    { id: "notes",         label: "Notes" },
+  ];
+  const statusC = stageColors(lead.status);
+  return `
+    <aside class="drawer" data-open="true" role="dialog" aria-label="Détails du prospect">
+      <div class="drawer-header">
+        <div class="drawer-header-text">
+          <div class="drawer-name">
+            ${lead.name}
+            <span class="drawer-badge" style="background:${statusC.bg};color:${statusC.fg};">${stageLabel(lead.type, lead.status)}</span>
+          </div>
+          <div class="drawer-meta">${leadPrice(lead)} · ${lead.zone} · ${typeLabel(lead.type)} · ${leadTimeline(lead)}</div>
+          <div class="drawer-header-extras">
+            ${renderSourceIcon(lead.source)}
+          </div>
+        </div>
+        <button class="icon-btn drawer-close" data-action="close-drawer" aria-label="Fermer">
+          ${isMobile() ? icon.arrowLeft() : icon.close()}
+        </button>
+      </div>
+      <div class="drawer-tabs" role="tablist">
+        ${tabs.map(t => `
+          <button class="drawer-tab"
+                  role="tab"
+                  aria-selected="${t.id === activeTab}"
+                  data-action="switch-drawer-tab"
+                  data-tab="${t.id}">${t.label}</button>
+        `).join("")}
+      </div>
+      <div class="drawer-body" role="tabpanel">
+        <div class="drawer-placeholder">
+          <strong>Onglet « ${tabs.find(t => t.id === activeTab).label} »</strong>
+          Contenu à venir — onglet construit à l'étape 3. Pour l'instant la structure, les transitions et les boundaries du tiroir sont opérationnelles.
+        </div>
+      </div>
+      <div class="drawer-footer">
+        ${renderButton({ icon: icon.phone(),         label: "Appeler" })}
+        ${renderButton({ icon: icon.messageCircle(), label: "WhatsApp" })}
+        ${renderButton({ icon: icon.send(),          label: "Template", variant: "primary" })}
+      </div>
+    </aside>
+  `;
+}
+
+/* ───── Root render ───── */
+function renderApp() {
+  return `
+    <div class="app-shell">
+      ${renderSidebar()}
+      <div class="main">
+        ${renderTopbar()}
+        ${renderContent()}
+      </div>
+    </div>
+    <div class="mobile-overlay" data-visible="${state.sidebarOpen}"></div>
+    ${renderDrawer()}
+  `;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER + EVENT DELEGATION
+   One render function. One event listener. All interactions route
+   through data-action / data-route attributes.
+   ═══════════════════════════════════════════════════════════════ */
+function render() {
+  document.getElementById("app").innerHTML = renderApp();
+  // Reflect drawer state on body so mobile CSS can lock scroll.
+  document.body.setAttribute("data-drawer-open", state.drawer ? "true" : "false");
+  // Reflect active route on body. Used by route-scoped CSS (e.g. topbar
+  // search suppression on Leads routes). Kept inside render() so state and
+  // DOM stay in sync — same pragmatic pattern as the drawer attr above.
+  document.body.setAttribute("data-route", state.route);
+  // Sync browser tab title with current route.
+  document.title = `${routeTitles[state.route] || "Open House"} · Open House Prospects`;
+}
+
+document.addEventListener("click", (e) => {
+  // Outside-click closes the agency switcher
+  if (state.agencySwitcherOpen && !e.target.closest(".agency-switcher-wrap")) {
+    setState({ agencySwitcherOpen: false });
+    // fall through so other handlers can still react
+  }
+
+  // Outside-click closes the user menu
+  if (state.userMenuOpen && !e.target.closest(".user-menu-wrap")) {
+    setState({ userMenuOpen: false });
+  }
+
+  const target = e.target.closest("[data-action], [data-route]");
+  if (!target) return;
+
+  // Nav
+  const route = target.getAttribute("data-route");
+  if (route) {
+    setState({
+      route,
+      sidebarOpen: false,
+      agencySwitcherOpen: false,
+      userMenuOpen: false,
+    });
+    return;
+  }
+
+  // Actions
+  const action = target.getAttribute("data-action");
+  switch (action) {
+    case "toggle-darkmode":
+      setState({ darkMode: !state.darkMode });
+      break;
+    case "open-sidebar":
+      setState({ sidebarOpen: true });
+      break;
+    case "toggle-agency-switcher":
+      setState({ agencySwitcherOpen: !state.agencySwitcherOpen, userMenuOpen: false });
+      break;
+    case "toggle-user-menu":
+      setState({ userMenuOpen: !state.userMenuOpen, agencySwitcherOpen: false });
+      break;
+    case "select-city": {
+      const cityId = Number(target.getAttribute("data-city-id"));
+      setState({
+        agency: { ...state.agency, currentCityId: cityId },
+        agencySwitcherOpen: false,
+      });
+      break;
+    }
+    case "go-profile":
+    case "go-preferences":
+    case "go-help":
+      // Stubs — will route to the right page when those pages exist
+      setState({ userMenuOpen: false });
+      break;
+    case "logout":
+      // Stub — real logout posts to /api/auth/logout on the Express backend later
+      setState({ userMenuOpen: false });
+      break;
+    case "add-lead":
+      // Stub — opens the "Ajouter un prospect" modal. Form built after Step 2.
+      alert("Ajouter un prospect — à venir. Construit après l'étape 2.");
+      break;
+    case "row-click": {
+      const leadId = Number(target.getAttribute("data-lead-id"));
+      // In select mode, row click toggles lead selection. Out of select mode,
+      // row click opens (or toggles) the drawer. One click target, two modes.
+      if (state.selectionMode) {
+        const picked = state.selectedLeadIds.includes(leadId);
+        const nextIds = picked
+          ? state.selectedLeadIds.filter(id => id !== leadId)
+          : [...state.selectedLeadIds, leadId];
+        setState({ selectedLeadIds: nextIds });
+      } else {
+        // Same-lead click closes; different-lead click swaps.
+        if (state.drawer?.leadId === leadId) setState({ drawer: null });
+        else                                 setState({ drawer: { leadId, tab: "infos" } });
+      }
+      break;
+    }
+    case "open-drawer": {
+      // Legacy alias — kept so any older `data-action="open-drawer"` still works
+      // (e.g. future drawer-sourced deep links). Identical to row-click out of
+      // select mode. In select mode, never routes here (rows emit row-click).
+      const leadId = Number(target.getAttribute("data-lead-id"));
+      if (state.drawer?.leadId === leadId) setState({ drawer: null });
+      else                                 setState({ drawer: { leadId, tab: "infos" } });
+      break;
+    }
+    case "close-drawer":
+      setState({ drawer: null });
+      break;
+    case "switch-drawer-tab": {
+      const tab = target.getAttribute("data-tab");
+      setState({ drawer: { ...state.drawer, tab } });
+      break;
+    }
+    case "set-lead-type": {
+      // Toggle Acquéreurs ↔ Vendeurs. Always reset filterTab to "all" — stage
+      // ids aren't guaranteed to exist across types (e.g. "visit_planned" is
+      // buyer-only), so carrying an active tab across a type flip risks an
+      // active filter that matches nothing.
+      const typeKey = target.getAttribute("data-type");
+      if (typeKey === state.leadType) break;  // no-op if clicking the active tab
+      setState({ leadType: typeKey, filterTab: "all" });
+      break;
+    }
+    case "set-filter-tab": {
+      const tabId = target.getAttribute("data-tab-id");
+      // Clicking the already-active stage card deselects back to "all" —
+      // Prodex-style toggle-filter behavior. Other code paths still treat
+      // filterTab === "all" as "no stage filter active".
+      if (tabId === state.filterTab) setState({ filterTab: "all" });
+      else                           setState({ filterTab: tabId });
+      break;
+    }
+    case "sort-column": {
+      // Click cycle on a column header: desc → asc → no sort (back to default id order).
+      // First click on any column is always desc because real-estate data is
+      // "newest/biggest/hottest first" most of the time.
+      const col = target.getAttribute("data-column");
+      const curr = state.leadsSort;
+      let next;
+      if (!curr || curr.column !== col)           next = { column: col, direction: "desc" };
+      else if (curr.direction === "desc")         next = { column: col, direction: "asc" };
+      else                                         next = null;
+      setState({ leadsSort: next });
+      break;
+    }
+    case "toggle-select-mode": {
+      // Entering: turn the checkbox column on. Leaving: also clear selection —
+      // matches the mental model that "Annuler" means "cancel this operation".
+      if (state.selectionMode) {
+        setState({ selectionMode: false, selectedLeadIds: [] });
+      } else {
+        setState({ selectionMode: true });
+      }
+      break;
+    }
+    case "toggle-select-all": {
+      // Acts on the CURRENTLY VISIBLE rows (the view returned by computeLeadsView).
+      // If every visible lead is already picked, deselect them. Otherwise, add
+      // any missing ones to the selection. Leads picked-but-hidden stay picked.
+      const view = computeLeadsView();
+      const visibleIds = view.visible.map(l => l.id);
+      const allVisiblePicked = visibleIds.length > 0 && visibleIds.every(id => state.selectedLeadIds.includes(id));
+      const nextIds = allVisiblePicked
+        ? state.selectedLeadIds.filter(id => !visibleIds.includes(id))
+        : [...new Set([...state.selectedLeadIds, ...visibleIds])];
+      setState({ selectedLeadIds: nextIds });
+      break;
+    }
+    case "clear-selection":
+      // X on the bulk bar. Clears selection but stays in select mode —
+      // user can continue picking. Full exit is via the Annuler button / ESC.
+      setState({ selectedLeadIds: [] });
+      break;
+    case "bulk-assign":
+    case "bulk-change-status":
+    case "bulk-archive":
+    case "bulk-delete": {
+      // Stubs: popovers + confirms ship as a follow-up. Keep the selection
+      // intact so the user can see what would have been acted on.
+      const n = state.selectedLeadIds.length;
+      const verb = {
+        "bulk-assign":        "Assigner un agent à",
+        "bulk-change-status": "Changer le statut de",
+        "bulk-archive":       "Archiver",
+        "bulk-delete":        "Supprimer",
+      }[action];
+      alert(`${verb} ${n} lead${n === 1 ? "" : "s"} — action à construire.`);
+      break;
+    }
+    case "open-filter-panel": {
+      // Stub: the Filter popover (multi-dimensional refinement — score,
+      // source, agent, verified, date range, show-lost) ships as a
+      // follow-up. The "1" badge on the button reflects the current active
+      // stage filter from the KPI cards.
+      alert("Filtres avancés — panneau à construire.");
+      break;
+    }
+    case "filter-search":
+      // Bubbled by input events via the delegated input listener below.
+      // Mouse-clicking the input field also fires click; ignore here.
+      break;
+  }
+});
+
+// Close mobile sidebar on overlay click
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("mobile-overlay")) {
+    setState({ sidebarOpen: false });
+  }
+});
+
+/* Delegated input listener for the Leads-page search. State drives render,
+   so every keystroke re-renders the whole app — including the input. That
+   would lose focus and cursor position mid-typing. We capture both before
+   setState and restore them after it synchronously rebuilds the DOM. */
+document.addEventListener("input", (e) => {
+  const target = e.target.closest("[data-action='filter-search']");
+  if (!target) return;
+  const value     = target.value;
+  const cursorPos = target.selectionStart ?? value.length;
+  setState({ leadsSearch: value });
+  const next = document.querySelector("[data-action='filter-search']");
+  if (next) {
+    next.focus();
+    try { next.setSelectionRange(cursorPos, cursorPos); } catch (_) { /* no-op on unsupported inputs */ }
+  }
+});
+
+/* ESC key closes open drawers and dropdowns.
+   Priority: drawer > select mode > user menu > agency switcher > sidebar.
+   Drawer wins first because it's the most "modal" surface visually. Select
+   mode is second because it's a global state the user has actively entered. */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (state.drawer)              { setState({ drawer: null });             return; }
+  if (state.selectionMode)       { setState({ selectionMode: false, selectedLeadIds: [] }); return; }
+  if (state.userMenuOpen)        { setState({ userMenuOpen: false });      return; }
+  if (state.agencySwitcherOpen)  { setState({ agencySwitcherOpen: false });return; }
+  if (state.sidebarOpen)         { setState({ sidebarOpen: false });       return; }
+});
+
+/* Scroll-aware topbar: add a subtle bottom border once content scrolls under it */
+let scrolledState = false;
+window.addEventListener("scroll", () => {
+  const scrolled = window.scrollY > 4;
+  if (scrolled !== scrolledState) {
+    scrolledState = scrolled;
+    const topbar = document.querySelector(".topbar");
+    if (topbar) topbar.setAttribute("data-scrolled", scrolled ? "true" : "false");
+  }
+}, { passive: true });
+
+/* Re-render across the mobile breakpoint so the drawer close button
+   swaps between X (desktop) and back-arrow (mobile) on window resize. */
+let wasMobile = isMobile();
+window.addEventListener("resize", () => {
+  const nowMobile = isMobile();
+  if (nowMobile !== wasMobile) {
+    wasMobile = nowMobile;
+    if (state.drawer) render();
+  }
+}, { passive: true });
+
+/* Initial render */
+render();
 </script>
+
 </body>
 </html>
