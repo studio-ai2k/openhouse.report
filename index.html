@@ -1,71 +1,67 @@
 <!doctype html>
 <!--
-  Open House Prospects — Step 2 Leads page (Layer 1 complete)
-  v0.7.0 — chip no longer carries a dev suffix
-  Reference: docs/DESIGN_SPEC.md
+  Open House Prospects — Step 2 Layer 2 SHIPPED
+  v0.8.0 — Leads table in a contained Prodex-style card
+  Reference: docs/DESIGN_SPEC.md + reference shot of Prodex Top Products card
   Workflow: docs/DESIGN_PROTOCOL.md
 
-  v0.7.0 ships Step 2 Layer 1: the Leads page with a working toggle,
-  in-page search, pipeline bar, filter tabs, and a clickable card list
-  that opens the drawer. Data model enriched to 12 leads matching
-  docs/DATA_MODEL.md shape. Built through four dev phases (p1 foundation,
-  p2 Variation A, p3 Variation B, p4 cleanup) — this is p4 shipping as
-  the final v0.7.0. Variation B (tinted toggle + type-accent surface)
-  won the A/B. Variation A code is deleted; winner's route renamed from
-  "leads-b" back to the canonical "leads"; nav collapsed to a single
-  entry; CSS class suffix "-b" dropped from the winner.
+  v0.8.0 replaces the Layer 1 card stack with a sortable-ready table
+  wrapped in a single contained card. The naked pipeline bar + filter
+  tabs band is replaced by a row of 6 Prodex-style stage KPI cards that
+  serve BOTH as visualization (icon badge + label + count) AND as the
+  primary filter — clicking a stage card filters the table to that
+  pipeline stage; clicking the active card again deselects back to "all".
 
-  What v0.7.0 introduces on the Leads page:
-  - Compact segmented toggle (Acquéreurs / Vendeurs) with a 4px
-    type-accent band above it — blue for Acquéreurs, amber for Vendeurs.
-    Flipping the toggle re-palettes the whole surface in one place via
-    a --type-accent CSS custom property set on the page root's
-    mode-buyer / mode-seller class.
-  - Context chip next to the toggle: "10 acquéreurs actifs" /
-    "3 vendeurs actifs" — raw type count, singular/plural grammar.
-  - Controls row: visible-count meta on the left, page-level search on
-    the right. Topbar search is suppressed on the Leads route (global
-    search is deferred).
-  - Pipeline bar: one tinted cell per pipeline stage for the active
-    type (6 cells for buyer, 6 for seller). Each cell is a filter
-    shortcut — clicking a stage selects the matching filter tab below.
-  - Filter tabs: Tous · [pipeline stages] · Perdu. Dark-fill active state.
-  - Lead cards: avatar + name + email, price + zone + timeline, source
-    icon, score chip (Chaud / Tiède / Froid), status pill, verified
-    check, assigned-agent avatar, creation date. Click opens the drawer.
-  - Empty states: "Aucun vendeur pour l'instant" when type=seller and
-    0 sellers exist; "Aucun résultat" when filters + search yield 0.
+  Key structural moves from Layer 1:
+  - Removed: renderPipelineBar, renderFilterTabs, renderLeadsControlsRow,
+    renderLeadCard, renderLeadsList. Also removed the .pipeline-cell*,
+    .filter-tab*, .lead-card*, .status-pill, .source-icon*, .lead-verified,
+    .lead-agent CSS (~220 lines).
+  - Added: renderStageCards (the 6-card Prodex row), renderLeadsTable
+    (contained card with header + column labels + rows), renderLeadRow
+    (single grid row, click-to-open-drawer). Added 7 new icons: inbox,
+    target, calendar, fileText, trophy, sort, filter.
+  - "Mis à jour il y a 2 min" meta moves to the toggle row (right-aligned).
+  - In-page search moves into the table card header, alongside Sort and
+    Filter buttons (Prodex Top Products pattern).
+  - Status and Source columns are dropped from the table row per §14
+    design decision — Status is already loud (stage cards up top), Source
+    rarely needs at-a-glance access (lives in the drawer instead).
 
-  Counts discipline:
-    - Context chip     = raw type total (ignores search, honest volume)
-    - Pipeline + tabs  = type + search filtered (stable across tab clicks)
-    - Visible cards    = all three filters applied
+  Stage cards — default vs active:
+  - Default: white bg · soft border · colored icon in stage-tint badge ·
+    muted label · primary-text count.
+  - Active:  stage-tint bg · transparent border · white icon badge ·
+    stage-fg label · stage-deep (darker) count. Re-palettes on click.
 
-  Pipeline stages are per-agency (state.agency.pipeline.{buyer, seller}
-  with { id, label } shape per DATA_MODEL). Every status-reading UI —
-  tabs, pipeline bar, status pill, drawer header — reads from this
-  array, so renaming or reordering stages at the data level flows
-  through without code changes.
+  stageColors() now returns { bg, fg, deep } — the deep tone is the
+  readable dark variant used by the active-card label/count. Existing
+  callers (drawer header, score pill) destructure bg + fg only — the
+  third value is ignored, no breakage.
 
-  Resolved open decisions (from DESIGN_SPEC §16b):
-  - Mono font scope: JetBrains Mono stays loaded; used by .empty-state
-    <code> elements and .nav-item-badge. Not extended to card numerics —
-    those use DM Sans with `font-variant-numeric: tabular-nums` for
-    alignment. Revisit only if Layer 2's table budget column has real
-    alignment issues.
-  - Feedback card fate: kept. The sidebar doesn't yet feel cramped;
-    re-evaluate once Agents / Campagnes / Database get real content.
+  Sort and Filter buttons:
+  - Sort = stub. Clicking shows an alert for now. Column-header sort
+    toggles and the popover UI ship as a follow-up to Layer 2.
+  - Filter = stub. When the stage-card filter is active, the button
+    carries a "1" count badge so the user can see a filter is applied.
+    The popover will handle Score / Source / Agent / Verified / Date
+    range / show-Perdu refinements — none are buildable until the popover
+    primitive lands.
 
-  What v0.7.0 does NOT include (deferred to later steps):
-  - Step 2 Layer 2: the real sortable leads table with bulk checkboxes.
-    Currently the Leads page is a richer-than-before card list that
-    shows the same data a table would. Layer 2 converts cards → table
-    as a separate push.
-  - Step 3: drawer tab bodies (Infos / Qualification / Activité / Notes).
-    The drawer header reads correctly from the enriched schema; the
-    four tabs still show a placeholder body.
-  - Step 4+: Tableau de bord, Agents, Campagnes, Database, Paramètres —
-    all still on the "à venir" placeholder.
+  What v0.8.0 does NOT include (deferred):
+  - Column sorting (headers are static labels, no click handlers yet)
+  - Bulk select via row checkboxes — deferred until the bulk action bar
+    ships. state.selectedLeadIds still unplanned.
+  - Filter popover content — button stub only.
+  - Sort popover content — button stub only.
+  - Mobile card-fallback for the table (current mobile layout relies on
+    flex-wrap in the table header + tight grid gaps; ~600px and below
+    may need a proper card fallback — evaluate on iPad landscape first).
+
+  Next steps (HANDOFF §7):
+  - Step 3: drawer bodies (Infos / Qualification / Activité / Notes forms)
+  - Follow-up polish: Sort popover, Filter popover, bulk select, column
+    sorting.
 -->
 <html lang="fr">
 <head>
@@ -1084,35 +1080,27 @@
      architecture notes in HANDOFF).
      ═══════════════════════════════════════════════════════════════ */
 
-  /* Utility row: meta left, page search right. */
-  .leads-controls-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
-  .leads-meta {
-    font-size: 13px;
+  /* "Mis à jour il y a 2 min" meta in the toggle row, right-aligned. */
+  .leads-updated-meta {
+    margin-left: auto;
+    font-size: 12px;
     color: var(--text-muted);
     letter-spacing: -0.05px;
   }
 
-  /* Page-level Leads search. Shorter and less prominent than the topbar
-     search (which is hidden on Leads routes anyway — see Phase 1 CSS).
+  /* Page-level Leads search. Used inside the leads-table-card header.
      Matches the .search pill shape for visual rhyme. */
   .leads-search {
     display: flex;
     align-items: center;
-    gap: 10px;
-    width: 320px;
+    gap: 8px;
+    width: 240px;
     max-width: 100%;
-    height: 38px;
-    padding: 0 14px;
-    background: var(--panel);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--r-pill);
+    height: 36px;
+    padding: 0 12px;
+    background: var(--bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-sm);
     transition: border-color 120ms ease, box-shadow 120ms ease;
   }
   .leads-search:focus-within {
@@ -1120,9 +1108,9 @@
     box-shadow: 0 0 0 3px rgba(91, 109, 255, 0.08);
   }
   .leads-search svg {
-    width: 16px;
-    height: 16px;
-    color: var(--text-body);
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
     stroke-width: 2;
     flex-shrink: 0;
   }
@@ -1138,98 +1126,78 @@
   }
   .leads-search input::placeholder { color: var(--text-muted); }
 
-  /* Pipeline bar — one cell per pipeline stage. Tinted bg = stage color.
-     Cells are flex:1 so they fill the row, scroll horizontally on narrow. */
-  .pipeline-bar {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-    overflow-x: auto;
-    scrollbar-width: none;
+  /* Stage KPI cards — the Prodex-style row that sits above the table.
+     Six cards per type. Click = filter the table to that stage. Click the
+     active card again = deselect to "all". Card face treatment flips
+     between default and active states:
+       Default: white bg · soft border · colored icon in soft-tint badge
+       Active:  soft-tint bg (stage.bg) · no border · white icon badge ·
+                deeper text so label + count stay readable on the tint. */
+  .stage-cards {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
   }
-  .pipeline-bar::-webkit-scrollbar { display: none; }
-  .pipeline-cell {
-    flex: 1 1 0;
-    min-width: 120px;
+  .stage-card {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    padding: 12px 14px;
-    background: var(--cell-bg, var(--surface-tint));
-    border: 1px solid transparent;
-    border-radius: var(--r-sm);
-    color: var(--cell-fg, var(--text-secondary));
+    align-items: center;
+    gap: 11px;
+    padding: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
     cursor: pointer;
     font-family: inherit;
     text-align: left;
-    transition: border-color 120ms ease, transform 60ms ease;
+    min-width: 0;
+    transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
   }
-  .pipeline-cell:hover { border-color: currentColor; }
-  .pipeline-cell:active { transform: translateY(0.5px); }
-  .pipeline-cell[aria-pressed="true"] {
-    border-color: currentColor;
-    box-shadow: inset 0 0 0 1px currentColor;
+  .stage-card:hover:not(.stage-card--active) {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-xs);
   }
-  .pipeline-cell-label {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: -0.1px;
-    line-height: 1.3;
+  .stage-card--active {
+    background: var(--stage-bg);
+    border-color: transparent;
   }
-  .pipeline-cell-count {
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-    line-height: 1;
-  }
-
-  /* Filter tabs — horizontal scrollable pills, "Tous · [stages] · Perdu". */
-  .filter-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 18px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-  .filter-tabs::-webkit-scrollbar { display: none; }
-  .filter-tab {
+  .stage-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--stage-bg);
+    color: var(--stage-fg);
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 7px 12px;
-    background: var(--panel);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--r-pill);
-    font-family: inherit;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 120ms ease;
+  }
+  .stage-card--active .stage-card-icon { background: var(--panel); }
+  .stage-card-icon svg { width: 18px; height: 18px; }
+  .stage-card-text { min-width: 0; display: block; }
+  .stage-card-label {
+    display: block;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
-    cursor: pointer;
-    white-space: nowrap;
     letter-spacing: -0.1px;
-    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .filter-tab:hover { background: var(--row-hover); color: var(--text-primary); }
-  .filter-tab[aria-selected="true"] {
-    background: var(--text-primary);
-    border-color: var(--text-primary);
-    color: var(--panel);
+  .stage-card--active .stage-card-label { color: var(--stage-fg); }
+  .stage-card-count {
+    display: block;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
   }
-  .filter-tab-count {
-    background: var(--surface-tint);
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-weight: 500;
-    padding: 1px 6px;
-    border-radius: var(--r-pill);
-    line-height: 1.4;
-  }
-  .filter-tab[aria-selected="true"] .filter-tab-count {
-    background: rgba(255, 255, 255, 0.15);
-    color: var(--panel);
-  }
+  .stage-card--active .stage-card-count { color: var(--stage-deep); }
 
   /* Score chip — Chaud / Tiède / Froid. Colored dot + label inside a
      tinted pill. Chosen so all three weights read at the same visual
@@ -1258,79 +1226,152 @@
   .score-chip--cold { background: #E6F1FB; color: #0C447C; }
   .score-chip--cold .score-chip-dot { background: #85B7EB; }
 
-  /* Source icon — small branded tile. Not brand SVG — consistency at
-     18px beats fidelity, and avoids trademark concerns. */
-  .source-icon {
+  /* Leads table card — contained Prodex-style card. Whole table (header +
+     column labels + rows) lives inside one surface. Click a row → drawer.
+     Design notes:
+       - Header row: identity left (icon + title + meta) · actions right
+         (search + Sort button + Filter button). Actions wrap on narrow.
+       - Column headers are muted uppercase, subtle hairline under.
+       - Rows are CSS grid with named column widths so body + header align.
+       - Selected row gets a soft tint matching the drawer-open lead.
+       - Last row has no hairline to avoid a double border with the card. */
+  .leads-table-card {
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .leads-table-header {
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+  }
+  .leads-table-header-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    flex: 1;
+    min-width: 0;
+  }
+  .leads-table-header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--type-accent-bg);
+    color: var(--type-accent);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .leads-table-header-icon svg { width: 17px; height: 17px; }
+  .leads-table-header-text { min-width: 0; }
+  .leads-table-title {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.15px;
+  }
+  .leads-table-meta {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+    letter-spacing: -0.05px;
+  }
+  .leads-table-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .leads-table-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 36px;
+    padding: 0 13px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-sm);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    letter-spacing: -0.05px;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .leads-table-btn:hover {
+    background: var(--row-hover);
+    border-color: var(--border-strong);
+  }
+  .leads-table-btn svg { width: 14px; height: 14px; stroke-width: 2; }
+  .leads-table-btn-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    background: var(--accent-blue);
+    color: var(--panel);
     font-size: 10px;
     font-weight: 600;
-    color: #FFF;
-    flex-shrink: 0;
-    line-height: 1;
-    letter-spacing: -0.2px;
-  }
-  .source-icon--ig     { background: #E1306C; }
-  .source-icon--fb     { background: #1877F2; }
-  .source-icon--web    { background: var(--text-secondary); }
-  .source-icon--email  { background: #5B6DFF; }
-  .source-icon--manual { background: #1C1C1F; }
-
-  /* Status pill — same shape as drawer-badge but usable inline anywhere. */
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 10px;
     border-radius: var(--r-pill);
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: -0.1px;
-    white-space: nowrap;
+    line-height: 1;
   }
 
-  /* Lead card — stacked list of clickable rows. Structure: identity
-     (avatar + name + email) · meta (price + zone + timeline) · signals
-     (source, score, status, verified, agent, date). The three regions
-     flex horizontally on desktop and wrap on narrow. */
-  .lead-card-stack {
+  /* Table grid — header + body share identical column widths.
+     Widths are tuned for an ~880px content area on desktop; tablet and
+     mobile collapse via the @media rules at the bottom of this stylesheet. */
+  .leads-table-head,
+  .leads-row {
+    display: grid;
+    grid-template-columns:
+      minmax(180px, 2.2fr)  /* Nom (avatar + name + email)   */
+      minmax(100px, 1fr)    /* Budget                         */
+      minmax(140px, 1.4fr)  /* Zone · timeline                */
+      minmax(90px,  0.9fr)  /* Score chip                     */
+      minmax(70px,  0.8fr)  /* Agent avatar                   */
+      minmax(72px,  0.9fr); /* Date                           */
+    gap: 14px;
+    align-items: center;
+  }
+  .leads-table-head {
+    padding: 12px 22px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .leads-table-body { display: block; }
+  .leads-row {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 80ms ease;
+  }
+  .leads-row:hover { background: var(--row-hover); }
+  .leads-row[data-selected="true"] { background: #F2F5FF; }
+  .leads-row:last-child { border-bottom: 0; }
+
+  .leads-col { min-width: 0; }
+  .leads-col--nom {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 10px;
   }
-  .lead-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 18px;
-    background: var(--panel);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--r-md);
-    cursor: pointer;
-    transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
-  }
-  .lead-card:hover {
-    border-color: var(--border-strong);
-    background: var(--row-hover);
-    box-shadow: var(--shadow-xs);
-  }
-  .lead-card[data-selected="true"] {
-    background: #F2F5FF;
-    border-color: #B5C4FF;
-  }
-  .lead-card-identity {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 2 1 220px;
-    min-width: 0;
-  }
-  .lead-card-identity-text { min-width: 0; }
-  .lead-card-name {
-    font-size: 14px;
+  .leads-col-nom-text { min-width: 0; }
+  .leads-col-nom-name {
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
     letter-spacing: -0.1px;
@@ -1338,71 +1379,51 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .lead-card-email {
+  .leads-col-nom-email {
     font-size: 12px;
     color: var(--text-muted);
-    margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .lead-card-meta {
-    flex: 1 1 180px;
-    min-width: 0;
-    font-variant-numeric: tabular-nums;
-  }
-  .lead-card-price {
-    font-size: 14px;
+  .leads-col--budget {
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
     letter-spacing: -0.2px;
   }
-  .lead-card-sub {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 2px;
+  .leads-col--zone {
+    font-size: 13px;
+    color: var(--text-body);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .lead-card-signals {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: nowrap;
-    flex-shrink: 0;
-  }
-  .lead-card-date {
+  .leads-col--date {
     font-size: 12px;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
-    min-width: 58px;
-    text-align: right;
   }
-  .lead-verified {
-    width: 18px;
-    height: 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #2F9D6F;
-    flex-shrink: 0;
+  .leads-row-agent { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .leads-row-agent--none {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 400;
   }
-  .lead-verified svg { width: 14px; height: 14px; stroke-width: 2.5; }
-  .lead-verified--off { color: var(--text-muted); font-size: 14px; }
-  .lead-agent {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-  }
-  .lead-agent--none { color: var(--text-muted); font-size: 14px; }
 
-  /* Empty-state inside the leads list (no-match / no-sellers). Softer than
-     the main app empty-state — visually a card at the spot where rows
-     would have been. */
+  /* Score pill inside the table row — sized slightly smaller than the
+     standalone .score-chip elsewhere in the app. */
+  .leads-col--score .score-chip {
+    font-size: 11px;
+    padding: 3px 9px;
+  }
+
+  /* Empty-state inside the leads table card. Softer than the main app
+     empty-state — visually a panel at the spot where rows would have been. */
   .leads-empty {
-    padding: 40px 24px;
+    padding: 48px 24px;
     text-align: center;
-    background: var(--panel);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--r-md);
   }
   .leads-empty-title {
     font-size: 15px;
@@ -1423,8 +1444,8 @@
      Everything type-aware reads from --type-accent / --type-accent-bg /
      --type-accent-strong, which are set on the .leads mode-* root
      class. Flipping the toggle re-palettes the whole surface in one
-     place. Shared primitives (pipeline-bar, filter-tabs, lead-card)
-     stay neutral and are rendered by the same functions regardless.
+     place. The stage KPI cards, table card header icon, and toggle
+     tabs all pick up these variables.
      ═══════════════════════════════════════════════════════════════ */
   .leads {
     --type-accent:        var(--accent-blue);
@@ -1524,9 +1545,43 @@
     .topbar { padding: 0 24px; }
     .content { padding: 0 24px 24px; }
     .search { width: 240px; }
+
+    /* Leads Layer 2 — tablet collapses the 6-card stage grid to 3 cols.
+       Table header still fits in one row but search narrows. */
+    .stage-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .leads-search { width: 200px; }
   }
 
   @media (max-width: 768px) {
+    /* Leads Layer 2 — mobile: 2-column stage grid, and the table header
+       stacks title + actions vertically. Search takes full row width.
+       Table rows keep their grid — columns with long content truncate
+       via text-overflow. Below ~600px, consider a card fallback later;
+       for now horizontal scroll on the card isn't needed because the
+       grid columns have sane minmax() floors. */
+    .stage-cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .stage-card { padding: 14px; }
+    .stage-card-count { font-size: 22px; }
+
+    .leads-table-header { padding: 14px 16px; }
+    .leads-table-header-title { flex: 1 1 100%; }
+    .leads-table-header-actions {
+      flex: 1 1 100%;
+      justify-content: flex-start;
+    }
+    .leads-search { width: 100%; flex: 1 1 200px; }
+
+    .leads-table-head,
+    .leads-row {
+      padding-left: 16px;
+      padding-right: 16px;
+      gap: 10px;
+    }
+    .leads-updated-meta { flex: 1 1 100%; margin-left: 0; }
+
     .app-shell { grid-template-columns: 1fr; }
     .sidebar {
       position: fixed;
@@ -1738,22 +1793,25 @@ function stageLabel(typeKey, stageId) {
    ("contacted" same in both, "converted" ↔ "sold" both dark green, etc.).
    If the status CSS tokens get formalized in :root later, swap hex for var(). */
 function stageColors(stageId) {
+  // bg   = soft tint (icon badge on default card, card surface on active)
+  // fg   = mid-saturation color (icon stroke, active-state label/accent)
+  // deep = dark variant for bold text on the tinted surface (active card's count)
   return {
     // Buyer pipeline
-    to_process:      { bg: "#E8ECFF", fg: "#5B6DFF" },  // blue — fresh
-    contacted:       { bg: "#EDE7FF", fg: "#6D48DB" },  // violet — in motion
-    qualified:       { bg: "#E4F4E9", fg: "#2F9D6F" },  // green — qualified
-    visit_planned:   { bg: "#E8ECFF", fg: "#5B6DFF" },  // blue — progressing
-    offer_made:      { bg: "#FBF0DC", fg: "#8C5A08" },  // amber — committed
-    converted:       { bg: "#D8EEDF", fg: "#1F7D54" },  // dark green — won
+    to_process:      { bg: "#E8ECFF", fg: "#5B6DFF", deep: "#2A3AB8" },  // blue — fresh
+    contacted:       { bg: "#EDE7FF", fg: "#6D48DB", deep: "#3E2595" },  // violet — in motion
+    qualified:       { bg: "#E4F4E9", fg: "#2F9D6F", deep: "#15653E" },  // green — qualified
+    visit_planned:   { bg: "#E8ECFF", fg: "#5B6DFF", deep: "#2A3AB8" },  // blue — progressing
+    offer_made:      { bg: "#FBF0DC", fg: "#8C5A08", deep: "#5A3A05" },  // amber — committed
+    converted:       { bg: "#D8EEDF", fg: "#1F7D54", deep: "#0D5034" },  // dark green — won
     // Seller pipeline (shared where semantically equivalent)
-    estimation_sent: { bg: "#EDE7FF", fg: "#6D48DB" },  // violet
-    appointment:     { bg: "#E8ECFF", fg: "#5B6DFF" },  // blue
-    mandate_signed:  { bg: "#FBF0DC", fg: "#8C5A08" },  // amber
-    sold:            { bg: "#D8EEDF", fg: "#1F7D54" },  // dark green
+    estimation_sent: { bg: "#EDE7FF", fg: "#6D48DB", deep: "#3E2595" },  // violet
+    appointment:     { bg: "#E8ECFF", fg: "#5B6DFF", deep: "#2A3AB8" },  // blue
+    mandate_signed:  { bg: "#FBF0DC", fg: "#8C5A08", deep: "#5A3A05" },  // amber
+    sold:            { bg: "#D8EEDF", fg: "#1F7D54", deep: "#0D5034" },  // dark green
     // Terminal
-    lost:            { bg: "#FDE7E7", fg: "#C44343" },  // red
-  }[stageId] || { bg: "#F4F4F6", fg: "#6E6B64" };       // fallback = neutral
+    lost:            { bg: "#FDE7E7", fg: "#C44343", deep: "#7A1F1F" },  // red
+  }[stageId] || { bg: "#F4F4F6", fg: "#6E6B64", deep: "#3B3A35" };       // fallback = neutral
 }
 
 /* Price field differs by type — buyers declare a budget range, sellers
@@ -1800,6 +1858,17 @@ const icon = {
   megaphone:   () => svg(`<path d="M3 11v2a4 4 0 004 4h1l5 4V3L8 7H7a4 4 0 00-4 4z"/><path d="M18 8v8"/><path d="M21 10v4"/>`),
   archive:     () => svg(`<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8"/><path d="M10 12h4"/>`),
   settings:    () => svg(`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>`),
+
+  // Stage-card icons (Step 2 Layer 2)
+  inbox:       () => svg(`<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>`),
+  target:      () => svg(`<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>`),
+  calendar:    () => svg(`<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>`),
+  fileText:    () => svg(`<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`),
+  trophy:      () => svg(`<path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/>`),
+
+  // Table-action icons
+  sort:        () => svg(`<path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/>`),
+  filter:      () => svg(`<line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/>`),
 };
 function svg(body, size=24) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
@@ -2129,8 +2198,14 @@ function computeLeadsView() {
   });
 
   // Apply filter tab on top of the base set.
+  // Layer 2 note: "all" excludes lost — the Statut column is gone, so a
+  // lost lead in the default view has no visual cue distinguishing it
+  // from an active one. Lost leads become reachable again when the
+  // Filter popover ships (it'll add a "Afficher les perdus" toggle that
+  // sets filterTab to "lost"). The "lost" code path is kept alive here
+  // so the popover can use it without refactor.
   const visible = baseFiltered.filter(l => {
-    if (state.filterTab === "all")  return true;
+    if (state.filterTab === "all")  return l.status !== "lost";
     if (state.filterTab === "lost") return l.status === "lost";
     return l.status === state.filterTab;
   });
@@ -2203,66 +2278,47 @@ function renderLeadsSearch() {
   `;
 }
 
-/* Controls row between toggle and pipeline bar: meta on the left,
-   page-level search on the right. "N leads visibles" reflects current view. */
-function renderLeadsControlsRow(visibleCount) {
-  return `
-    <div class="leads-controls-row">
-      <div class="leads-meta">${visibleCount} lead${visibleCount === 1 ? "" : "s"} visible${visibleCount === 1 ? "" : "s"} · mis à jour il y a 2 min</div>
-      ${renderLeadsSearch()}
-    </div>
-  `;
-}
-
-/* Pipeline bar: one cell per stage in the active type's pipeline. Cells
-   are clickable — they shortcut to set-filter-tab so clicking a stage
-   highlights the matching tab below. Perdu and "all" are NOT in the bar —
-   the bar is the happy-path progression; terminal and aggregate live in
-   the filter tabs. */
-function renderPipelineBar(pipeline, stageCounts, activeTab) {
-  const cells = pipeline.map(stage => {
+/* Stage KPI cards (Step 2 Layer 2): one Prodex-style card per pipeline
+   stage for the active type. Each card shows an icon badge (circular,
+   stage-tinted), label, and count. Clicking a card filters the table to
+   that stage; clicking the active card deselects (back to "all").
+   This row replaces both the Layer 1 pipeline bar AND the filter tabs
+   row — the KPI cards ARE the filter. Tous = no card selected (default).
+   Perdu: terminal state, not in this row — will live inside the Filter
+   button popover (see renderLeadsTable). */
+function renderStageCards(pipeline, stageCounts, activeStage) {
+  const stageIcons = {
+    to_process:      "inbox",
+    contacted:       "phone",
+    qualified:       "target",
+    visit_planned:   "calendar",
+    offer_made:      "fileText",
+    converted:       "trophy",
+    estimation_sent: "fileText",
+    appointment:     "calendar",
+    mandate_signed:  "fileText",
+    sold:            "trophy",
+  };
+  const cards = pipeline.map(stage => {
     const c = stageColors(stage.id);
     const n = stageCounts[stage.id] || 0;
-    const active = activeTab === stage.id;
+    const active = activeStage === stage.id;
+    const iconKey = stageIcons[stage.id] || "inbox";
     return `
-      <button class="pipeline-cell"
+      <button class="stage-card ${active ? "stage-card--active" : ""}"
               data-action="set-filter-tab"
               data-tab-id="${stage.id}"
               aria-pressed="${active}"
-              style="--cell-bg:${c.bg};--cell-fg:${c.fg};">
-        <span class="pipeline-cell-label">${stage.label}</span>
-        <span class="pipeline-cell-count">${n}</span>
+              style="--stage-bg:${c.bg};--stage-fg:${c.fg};--stage-deep:${c.deep};">
+        <span class="stage-card-icon">${icon[iconKey]()}</span>
+        <span class="stage-card-text">
+          <span class="stage-card-label">${stage.label}</span>
+          <span class="stage-card-count">${n}</span>
+        </span>
       </button>
     `;
   }).join("");
-  return `<div class="pipeline-bar" role="group" aria-label="Répartition par étape du pipeline">${cells}</div>`;
-}
-
-/* Filter tabs: Tous · [pipeline stages] · Perdu. Each shows a count of
-   leads matching that bucket given current type + search (not current
-   tab). Active tab is highlighted. */
-function renderFilterTabs(pipeline, counts, activeTab) {
-  const tab = (id, label, count) => {
-    const active = activeTab === id;
-    return `
-      <button class="filter-tab"
-              role="tab"
-              aria-selected="${active}"
-              data-action="set-filter-tab"
-              data-tab-id="${id}">
-        <span class="filter-tab-label">${label}</span>
-        <span class="filter-tab-count">${count}</span>
-      </button>
-    `;
-  };
-  const stageTabs = pipeline.map(s => tab(s.id, s.label, counts.stageCounts[s.id] || 0)).join("");
-  return `
-    <div class="filter-tabs" role="tablist" aria-label="Filtrer par statut">
-      ${tab("all",  "Tous",  counts.totalFiltered)}
-      ${stageTabs}
-      ${tab("lost", "Perdu", counts.lostCount)}
-    </div>
-  `;
+  return `<div class="stage-cards" role="group" aria-label="Filtrer par étape du pipeline">${cards}</div>`;
 }
 
 /* Score chip: Chaud / Tiède / Froid with a colored dot. */
@@ -2291,54 +2347,6 @@ function renderSourceIcon(source) {
   return `<span class="source-icon source-icon--${source}" title="${m.title}" aria-label="Source : ${m.title}">${m.char}</span>`;
 }
 
-/* Lead card: click target for the drawer. Richer than the v0.6.2 shell
-   card — previews roughly the data set the Step 2 Layer 2 table will
-   show. Structure: avatar · primary column (name + email) · meta column
-   (price + zone + timeline) · right cluster (source, score, status,
-   verified, agent, date). Wraps gracefully on narrow widths. */
-function renderLeadCard(lead) {
-  const selected  = state.drawer?.leadId === lead.id;
-  const sc        = stageColors(lead.status);
-  const statusLbl = stageLabel(lead.type, lead.status);
-  const agent     = lead.assignedAgentId != null
-    ? state.team.find(t => t.id === lead.assignedAgentId)
-    : null;
-  const verified  = lead.phoneVerified
-    ? `<span class="lead-verified" title="Téléphone vérifié" aria-label="Téléphone vérifié">${icon.check()}</span>`
-    : `<span class="lead-verified lead-verified--off" title="Non vérifié" aria-label="Non vérifié">—</span>`;
-  const agentCell = agent
-    ? `<span class="lead-agent" title="${agent.name}">${renderAvatar(agent.initials, agent.tone, 22)}</span>`
-    : `<span class="lead-agent lead-agent--none" title="Non assigné">—</span>`;
-
-  return `
-    <div class="lead-card"
-         data-action="open-drawer"
-         data-lead-id="${lead.id}"
-         data-selected="${selected}"
-         role="button" tabindex="0">
-      <div class="lead-card-identity">
-        ${renderAvatar(lead.initials, lead.tone, 36)}
-        <div class="lead-card-identity-text">
-          <div class="lead-card-name">${lead.name}</div>
-          <div class="lead-card-email">${lead.email}</div>
-        </div>
-      </div>
-      <div class="lead-card-meta">
-        <div class="lead-card-price">${leadPrice(lead)}</div>
-        <div class="lead-card-sub">${lead.zone} · ${leadTimeline(lead)}</div>
-      </div>
-      <div class="lead-card-signals">
-        ${renderSourceIcon(lead.source)}
-        ${renderScoreChip(lead.score)}
-        <span class="status-pill" style="background:${sc.bg};color:${sc.fg};">${statusLbl}</span>
-        ${verified}
-        ${agentCell}
-        <span class="lead-card-date">${lead.createdAt}</span>
-      </div>
-    </div>
-  `;
-}
-
 /* Empty states. kind="no-sellers" when type=seller and no seller leads
    exist at all. kind="no-match" when filter + search returned nothing. */
 function renderLeadsEmptyState(kind) {
@@ -2353,21 +2361,109 @@ function renderLeadsEmptyState(kind) {
   return `
     <div class="leads-empty">
       <div class="leads-empty-title">Aucun résultat</div>
-      <div class="leads-empty-body">Aucun lead ne correspond à ce filtre. Changez d'onglet, effacez la recherche, ou essayez un autre critère.</div>
+      <div class="leads-empty-body">Aucun lead ne correspond à ce filtre. Effacez la recherche, déselectionnez l'étape active, ou essayez un autre critère.</div>
     </div>
   `;
 }
 
-/* List of lead cards OR an empty state card. */
-function renderLeadsList(view) {
-  // "No sellers anywhere" takes priority over filter-no-match.
-  if (view.type === "seller" && view.counts.typeCounts.seller === 0) {
-    return `<div class="lead-card-stack">${renderLeadsEmptyState("no-sellers")}</div>`;
-  }
-  if (view.visible.length === 0) {
-    return `<div class="lead-card-stack">${renderLeadsEmptyState("no-match")}</div>`;
-  }
-  return `<div class="lead-card-stack">${view.visible.map(renderLeadCard).join("")}</div>`;
+/* Single table row. Click anywhere on the row opens the drawer for that
+   lead — uses the existing open-drawer action. Selected row carries
+   data-selected for a subtle highlight. Agent column falls back to an
+   em-dash when unassigned; same convention as the Layer 1 card. */
+function renderLeadRow(lead) {
+  const selected  = state.drawer?.leadId === lead.id;
+  const agent     = lead.assignedAgentId != null
+    ? state.team.find(t => t.id === lead.assignedAgentId)
+    : null;
+  const agentCell = agent
+    ? `<span class="leads-row-agent" title="${agent.name}">${renderAvatar(agent.initials, agent.tone, 26)}</span>`
+    : `<span class="leads-row-agent leads-row-agent--none" aria-label="Non assigné">—</span>`;
+  const zone      = lead.zone || "—";
+  const timeline  = leadTimeline(lead);
+  return `
+    <div class="leads-row"
+         data-action="open-drawer"
+         data-lead-id="${lead.id}"
+         data-selected="${selected}"
+         role="button" tabindex="0">
+      <div class="leads-col leads-col--nom">
+        ${renderAvatar(lead.initials, lead.tone, 34)}
+        <div class="leads-col-nom-text">
+          <div class="leads-col-nom-name">${lead.name}</div>
+          <div class="leads-col-nom-email">${lead.email}</div>
+        </div>
+      </div>
+      <div class="leads-col leads-col--budget">${leadPrice(lead)}</div>
+      <div class="leads-col leads-col--zone">${zone}${timeline ? ` · ${timeline}` : ""}</div>
+      <div class="leads-col leads-col--score">${renderScoreChip(lead.score)}</div>
+      <div class="leads-col leads-col--agent">${agentCell}</div>
+      <div class="leads-col leads-col--date">${lead.createdAt}</div>
+    </div>
+  `;
+}
+
+/* Leads table card: contained Prodex-style card with a header row
+   (identity + search + Sort + Filter), column headers, and the row body.
+   The search input is the same renderLeadsSearch primitive, just placed
+   inside this card's header instead of a naked controls row. Sort and
+   Filter buttons are stubs for now (their popovers ship after Layer 2);
+   the Filter button carries a count badge when filters are active. */
+function renderLeadsTable(view) {
+  const totalVisible = view.visible.length;
+  const filterActive = state.filterTab !== "all" && state.filterTab !== "lost";
+  const filterBadge  = filterActive
+    ? `<span class="leads-table-btn-badge">1</span>`
+    : "";
+  const activeStageLabel = filterActive
+    ? stageLabel(state.leadType, state.filterTab)
+    : null;
+  const meta = activeStageLabel
+    ? `${totalVisible} lead${totalVisible === 1 ? "" : "s"} filtré${totalVisible === 1 ? "" : "s"} par « ${activeStageLabel} »`
+    : `${totalVisible} lead${totalVisible === 1 ? "" : "s"} au total · mis à jour il y a 2 min`;
+  const titleIcon = state.leadType === "buyer" ? "home" : "key";
+
+  const noSellers = view.type === "seller" && view.counts.typeCounts.seller === 0;
+  const body = noSellers
+    ? renderLeadsEmptyState("no-sellers")
+    : totalVisible === 0
+      ? renderLeadsEmptyState("no-match")
+      : `
+        <div class="leads-table-head" role="row">
+          <div class="leads-col leads-col--nom" role="columnheader">Nom</div>
+          <div class="leads-col leads-col--budget" role="columnheader">Budget</div>
+          <div class="leads-col leads-col--zone" role="columnheader">Zone</div>
+          <div class="leads-col leads-col--score" role="columnheader">Score</div>
+          <div class="leads-col leads-col--agent" role="columnheader">Agent</div>
+          <div class="leads-col leads-col--date" role="columnheader">Date</div>
+        </div>
+        <div class="leads-table-body" role="rowgroup">
+          ${view.visible.map(renderLeadRow).join("")}
+        </div>
+      `;
+
+  return `
+    <div class="leads-table-card">
+      <div class="leads-table-header">
+        <div class="leads-table-header-title">
+          <span class="leads-table-header-icon">${icon[titleIcon]()}</span>
+          <span class="leads-table-header-text">
+            <span class="leads-table-title">Liste des leads</span>
+            <span class="leads-table-meta">${meta}</span>
+          </span>
+        </div>
+        <div class="leads-table-header-actions">
+          ${renderLeadsSearch()}
+          <button class="leads-table-btn" data-action="open-sort-panel" aria-label="Trier">
+            ${icon.sort()}<span>Trier</span>
+          </button>
+          <button class="leads-table-btn" data-action="open-filter-panel" aria-label="Filtrer">
+            ${icon.filter()}<span>Filtrer</span>${filterBadge}
+          </button>
+        </div>
+      </div>
+      ${body}
+    </div>
+  `;
 }
 
 /* Leads page composition. Wrapped in a .leads root that carries a
@@ -2384,11 +2480,10 @@ function renderLeadsContent() {
       <div class="leads-toggle-row">
         ${renderLeadsToggle()}
         ${renderLeadsContextChip(state.leadType, typeCount)}
+        <span class="leads-updated-meta">Mis à jour il y a 2 min</span>
       </div>
-      ${renderLeadsControlsRow(view.visible.length)}
-      ${renderPipelineBar(view.pipeline, view.counts.stageCounts, state.filterTab)}
-      ${renderFilterTabs(view.pipeline, view.counts, state.filterTab)}
-      ${renderLeadsList(view)}
+      ${renderStageCards(view.pipeline, view.counts.stageCounts, state.filterTab)}
+      ${renderLeadsTable(view)}
     </div>
   `;
 }
@@ -2422,7 +2517,7 @@ function renderRouteComingSoon() {
         <div class="empty-state-title">${title}</div>
         <div class="empty-state-body">Page à construire. Cette section sera implémentée après l'étape 2 (Leads) et l'étape 3 (tiroir).</div>
       </div>
-      <div class="empty-state-chip">v0.7.0</div>
+      <div class="empty-state-chip">v0.8.0</div>
     </div>
   `;
 }
@@ -2611,8 +2706,25 @@ document.addEventListener("click", (e) => {
     }
     case "set-filter-tab": {
       const tabId = target.getAttribute("data-tab-id");
-      if (tabId === state.filterTab) break;
-      setState({ filterTab: tabId });
+      // Clicking the already-active stage card deselects back to "all" —
+      // Prodex-style toggle-filter behavior. Other code paths still treat
+      // filterTab === "all" as "no stage filter active".
+      if (tabId === state.filterTab) setState({ filterTab: "all" });
+      else                           setState({ filterTab: tabId });
+      break;
+    }
+    case "open-sort-panel": {
+      // Stub: the Sort popover ships as a follow-up to Layer 2. For now it
+      // acknowledges the click so users know the button is live (not dead).
+      alert("Tri par colonne — panneau à construire.");
+      break;
+    }
+    case "open-filter-panel": {
+      // Stub: the Filter popover (multi-dimensional refinement — score,
+      // source, agent, verified, date range, show-lost) ships as a
+      // follow-up to Layer 2. The "1" badge on the button reflects the
+      // current active stage filter from the KPI cards.
+      alert("Filtres avancés — panneau à construire.");
       break;
     }
     case "filter-search":
