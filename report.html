@@ -321,10 +321,10 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
 
     <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
       <div class="si" style="color:var(--amb);background:var(--ambdim);border-color:rgba(255,184,77,.15)">Phase actuelle</div>
-      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Design HTML — spec finalisée, arbitrages verrouillés</h3>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le brief produit a été finalisé suite à des échanges avec l'équipe Open House — walkthrough du Centre de Prospects Meta et review du workflow agences. Open House Prospects gère deux types de leads dans une seule interface : <strong style="color:var(--t1)">Acquéreurs</strong> (acheteurs) et <strong style="color:var(--t1)">Vendeurs</strong> (propriétaires). Un toggle de type filtre la vue — mêmes actions, mêmes pipelines, champs différents.</p>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Chaque suggestion du brief original a été examinée et arbitrée : ce qui est construit maintenant, ce qui est reporté, et pourquoi. Le scoring automatique (🔥🟡❄️) est séparé de la qualification — le pipeline est ce qui qualifie un lead et ce qui remonte vers Meta via CAPI. Les pipelines sont personnalisables par agence dès le départ. Les templates de messages avec champs dynamiques sont intégrés.</p>
-      <p style="font-size:15px;color:var(--t2);line-height:1.75">Le prototype a été reconstruit : DM Sans + JetBrains Mono, drawer de détail lead avec édition inline, page Agents, navigation simplifiée. Frontend en HTML pur avec Google Sheets pour les données mock. HTML pour les 10 premiers clients, rebuild React si le produit le justifie.</p>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">L'application est en ligne — la page Leads est fonctionnelle</h3>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Open House Prospects est désormais accessible en ligne. La première agence intégrée — <strong style="color:var(--t1)">Magrey & Sons</strong> — a son logo, son sélecteur de ville, et son espace dans l'application. Le produit a évolué d'un prototype React vers une application HTML/CSS/JS complète en un seul fichier (~3 200 lignes), déployée sur GitHub Pages.</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">La page Leads est le cœur du produit et elle est opérationnelle : toggle Acquéreurs/Vendeurs avec bande de couleur par type, 6 cartes KPI par étape de pipeline (clic = filtre), tableau trié par colonnes cliquables (tri descendant → ascendant → désactivé), mode sélection avec cases à cocher et barre d'actions groupées (assigner, changer statut, archiver, supprimer), recherche, drawer de détail lead (structure prête, contenu des onglets en cours).</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75">L'architecture est solide : un seul objet d'état, fonctions de rendu qui correspondent 1:1 à de futurs composants React, délégation d'événements, tokens CSS. Le responsive fonctionne sur tablette et mobile. Prochaine étape : le contenu des onglets du drawer (Infos, Qualification, Activité, Notes).</p>
     </div>
 
     <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
@@ -434,11 +434,11 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <p class="slb">Roadmap</p>
     <h2 class="st">Le chemin vers le <em>produit.</em></h2>
   </div>
-  <div class="pipeline fly-steps" style="--pipe-fill:0.16">
+  <div class="pipeline fly-steps" style="--pipe-fill:0.19">
     <div class="pipe-line"></div><div class="pipe-line-fill"></div>
     <div class="pipe-steps">
       <div class="pipe-step done"><div class="pipe-dot">100%</div><h3>Vision produit</h3><p>Brief complet — Acquéreurs + Vendeurs. Rôles, data flow, intégration Meta validée.</p></div>
-      <div class="pipe-step active"><div class="pipe-dot">25%</div><h3>Design HTML</h3><p>Frontend HTML + Google Sheets (mock). Design, UX, interactions, toutes les pages.</p></div>
+      <div class="pipe-step active"><div class="pipe-dot">50%</div><h3>Design HTML</h3><p>Page Leads fonctionnelle. Drawer, tri, sélection, bulk actions. Autres pages en cours.</p></div>
       <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Intégration serveur</h3><p>Push HTML sur Hetzner CPX22. Express.js + PostgreSQL remplace Google Sheets.</p></div>
       <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Intégration Meta</h3><p>Webhooks Lead Ads, import historique, CAPI feedback, mapping champs par agence.</p></div>
       <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Auth & multi-tenancy</h3><p>Sessions Express + PostgreSQL. Rôles (Super Admin / Admin / Agent), isolation par agence.</p></div>
@@ -451,8 +451,8 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
       <span style="font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--adim);border:1px solid rgba(0,255,170,.15);padding:5px 14px;letter-spacing:1.5px;text-transform:uppercase">Prochaine livraison</span>
     </div>
-    <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Design HTML complet — toutes les pages, données mock</h3>
-    <p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:560px">Finaliser le design de chaque page en HTML avec données Google Sheets. Module Acquéreurs et Vendeurs fonctionnels visuellement. Pipelines, scoring, actions, responsive mobile. Le design validé sera ensuite poussé sur le serveur avec une vraie base de données.</p>
+    <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Contenu du drawer — Infos, Qualification, Activité, Notes</h3>
+    <p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:560px">La structure du drawer est en place. Le prochain chantier : remplir les 4 onglets avec du vrai contenu — formulaire de contact éditable, qualification par l'agent (pipeline + score), timeline d'activité, et notes horodatées. C'est le workflow principal de l'agent au quotidien.</p>
   </div>
 </div></section>
 
@@ -552,40 +552,24 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
     <div class="cl-entry">
       <div class="cl-date">Semaine 14 — 20 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Spec finalisée — arbitrages verrouillés</h4>
-        <p>Le brief original a été passé au crible : chaque suggestion examinée, chaque choix justifié. « Deux modules » devient un toggle de type lead. Le scoring est séparé de la qualification — seul le pipeline remonte vers Meta. Pipelines personnalisables par agence confirmés dès le départ. Templates messages avec champs dynamiques validés. Distribution email simplifiée en notification, WhatsApp Business reporté au profit de liens wa.me, dashboard admin Open House prévu en Phase 4 avec multi-tenancy propre dès le jour 1.</p>
+        <h4><span class="cl-tag new">New</span>v0.9.0 — Application en ligne, page Leads fonctionnelle</h4>
+        <p>L'application est accessible en ligne. Première agence intégrée : Magrey & Sons (logo, sélecteur de ville). Page Leads complète : 6 cartes KPI par étape (clic = filtre), tableau 6 colonnes avec tri par en-tête cliquable (3 états), mode sélection avec cases à cocher et barre d'actions groupées, recherche intégrée. Toggle Acquéreurs/Vendeurs avec bande de couleur par type. ~3 200 lignes de HTML/CSS/JS en un seul fichier.</p>
       </div>
     </div>
 
     <div class="cl-entry">
       <div class="cl-date">Semaine 14 — 20 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag update">Update</span>Open House Prospects — nom et positionnement</h4>
-        <p>Le produit est désormais Open House Prospects. Positionnement : offert gratuitement aux clients Open House comme bonus — « on crée votre contenu, on gère vos campagnes, ET on vous donne un outil pour gérer vos leads. » Une fois validé avec 2-3 clients, vente standalone à toute agence immobilière en France.</p>
+        <h4><span class="cl-tag new">New</span>Shell complet — sidebar, topbar, drawer, responsive</h4>
+        <p>Sidebar 260px avec logo agence, sélecteur ville/agence, navigation, dark mode, feedback card. Topbar sticky avec ombre au scroll, bouton +, cloche notifications, menu utilisateur. Drawer 480px (plein écran mobile) avec 4 onglets et footer actions. Responsive tablette et mobile. Chaîne ESC complète.</p>
       </div>
     </div>
 
     <div class="cl-entry">
       <div class="cl-date">Semaine 14 — 20 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Brief élargi — modules Acquéreurs & Vendeurs</h4>
-        <p>Suite à des échanges avec l'équipe Open House — walkthrough du Centre de Prospects Meta et review du workflow actuel — le brief produit a été entièrement revu. Open House Prospects couvre désormais deux modules : Acquéreurs (acheteurs immobiliers) et Vendeurs (propriétaires). Chaque module a ses propres champs de formulaire, son pipeline personnalisable, sa logique de scoring (🔥 Hot / 🟡 Warm / ❄️ Cold), et ses critères de qualification. Logique duale : un acheteur peut être marqué comme vendeur potentiel et inversement.</p>
-      </div>
-    </div>
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 14 — 20 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag update">Update</span>Prototype v2 — rebuild complet</h4>
-        <p>Reconstruction du prototype pour le rendre présentable et fonctionnel. Nouveau design : DM Sans + JetBrains Mono, tokens sémantiques, hiérarchie typographique resserrée. Panneau de détail lead (drawer 480px) avec édition inline du statut et de l'agent, onglets Infos/Activité/Notes, actions footer (Appeler, Email). Page Agents complète avec cards métriques. Rail latéral supprimé au profit d'une navigation top-bar uniquement.</p>
-      </div>
-    </div>
-
-    <div class="cl-entry">
-      <div class="cl-date">Semaine 14 — 20 avr</div>
-      <div class="cl-content">
-        <h4><span class="cl-tag update">Update</span>Stack simplifiée — HTML pur, Express.js + PostgreSQL</h4>
-        <p>Le frontend passe en HTML / CSS / JS pur — pas de React, pas de framework. Google Sheets pour les données mock en phase design, puis Express.js + PostgreSQL directement sur Hetzner CPX22 en production. Pas de Supabase — tout sur le VPS. Approche validée : HTML pour les 10 premiers clients, rebuild React envisagé uniquement quand le produit et la base client le justifient.</p>
+        <h4><span class="cl-tag update">Update</span>Architecture verrouillée — prête pour la migration</h4>
+        <p>Un seul objet d'état, fonctions de rendu composant par composant (migration React directe si nécessaire), délégation d'événements via data-action, tokens CSS en :root. Documentation : HANDOFF.md, DESIGN_SPEC.md (21 décisions verrouillées), DESIGN_PROTOCOL.md.</p>
       </div>
     </div>
 
@@ -595,18 +579,26 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
   <div class="changelog" id="clOlder" style="display:none">
 
     <div class="cl-entry">
-      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-date">Semaine 14 — 20 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag new">New</span>Open House Prospects — shell v1 + premières pages + carte Paris</h4>
-        <p>Le produit est renommé Open House Prospects. Direction artistique posée. Première version du shell : top nav, routing entre 5 pages, rail latéral rétractable, design tokens. Carte interactive des 20 arrondissements de Paris en SVG — heatmap de densité, effet 3D au survol, panneau de détail au clic. Page Leads avec pipeline, tableau, badges sources, scores.</p>
+        <h4><span class="cl-tag new">New</span>Spec finalisée — arbitrages verrouillés</h4>
+        <p>Brief passé au crible : « deux modules » → toggle de type. Scoring séparé de la qualification. Pipelines personnalisables. Templates messages. WhatsApp Business reporté. Admin Open House Phase 4.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 14 — 20 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag update">Update</span>Nom, positionnement, stack</h4>
+        <p>Open House Prospects — offert gratuitement aux clients, vente standalone après validation. Stack : HTML pur + Express.js + PostgreSQL sur Hetzner CPX22.</p>
       </div>
     </div>
 
     <div class="cl-entry">
       <div class="cl-date">Semaine 7 — 13 avr</div>
       <div class="cl-content">
-        <h4><span class="cl-tag update">Update</span>Intégration Meta — spec verrouillée + stack Hetzner</h4>
-        <p>Pipeline bidirectionnel validé : webhooks Lead Ads API + CAPI feedback loop. Trois événements mappés : Contact, Lead, Purchase. Déploiement migré de Vercel vers Hetzner VPS pour webhooks persistants.</p>
+        <h4><span class="cl-tag new">New</span>Prototype initial + intégration Meta verrouillée</h4>
+        <p>Shell React, page Leads, carte Paris interactive SVG, spec Meta (webhooks + CAPI), migration Vercel → Hetzner.</p>
       </div>
     </div>
 
@@ -614,7 +606,7 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
       <div class="cl-date">Semaine 31 mars — 6 avr</div>
       <div class="cl-content">
         <h4><span class="cl-tag new">New</span>Vision produit & sélection stack</h4>
-        <p>Brief initial du Module 1 analysé et validé. Trois rôles définis (Super Admin, Admin Agence, Agent). Data flow complet. Stack technique sélectionnée. Multi-tenancy intégrée dès le départ.</p>
+        <p>Brief initial, 3 rôles, data flow, stack technique, multi-tenancy dès le départ.</p>
       </div>
     </div>
 
@@ -641,44 +633,54 @@ footer{border-top:1px solid var(--brd);padding:36px 0}
 /* ═══ MODULE DATA ═══ */
 var MODULES = [
   { section: "Gestion des leads", items: [
-    { name: "Liste & tableau", status: "proto", desc: "Table avec colonnes : nom, budget, localisation, type, score (🔥🟡❄️), statut, agent, date, source. Onglets de filtre + toggle Acquéreurs/Vendeurs." },
-    { name: "Fiche lead (drawer)", status: "proto", desc: "Panneau 480px — contact cliquable (tel, email, WhatsApp), formulaire Meta, qualification agent, timeline d'activité, notes, édition inline statut/agent." },
+    { name: "Liste & tableau", status: "proto", desc: "6 colonnes triables (Nom, Budget, Zone, Score, Agent, Date). Tri par clic sur l'en-tête — descendant → ascendant → désactivé. Recherche intégrée." },
+    { name: "Fiche lead (drawer)", status: "proto", desc: "Panneau 480px — structure prête avec 4 onglets (Infos, Qualification, Activité, Notes). Contenu des onglets en cours de construction." },
+    { name: "Cartes KPI par étape", status: "proto", desc: "6 cartes avec badge icône circulaire, compteur, clic = filtre le tableau. Clic sur la carte active = retour à « tous »." },
+    { name: "Mode sélection", status: "proto", desc: "Bouton Sélectionner → colonne checkbox, sélection persistante entre filtres et types, barre d'actions groupées en bas." },
+    { name: "Toggle Acquéreurs/Vendeurs", status: "proto", desc: "Pill compacte avec bande de couleur 4px (bleu acquéreurs, ambre vendeurs). Recolore toute l'interface au changement." },
     { name: "Vue kanban", status: "planned", desc: "Pipeline en colonnes — glisser-déposer entre étapes. Complément à la vue tableau." },
     { name: "Pipeline personnalisable", status: "planned", desc: "Chaque agence crée ses propres étapes. Stocké en JSON, dynamique dans toute l'interface." },
-    { name: "Scoring automatique", status: "planned", desc: "🔥 Hot / 🟡 Warm / ❄️ Cold — calculé depuis : téléphone vérifié, budget, horizon, préférence de contact. Priorité, pas qualification." },
+    { name: "Scoring automatique", status: "planned", desc: "🔥 Hot / 🟡 Warm / ❄️ Cold — calculé depuis : téléphone vérifié, budget, horizon, préférence de contact." },
     { name: "Actions directes", status: "planned", desc: "Click-to-call, lien wa.me (WhatsApp), mailto — une action = un tap." },
     { name: "Templates messages", status: "planned", desc: "Templates avec champs dynamiques ({nom}, {budget}, {secteur}) — email et texte copiable pour WhatsApp." },
-    { name: "Notes & activité", status: "proto", desc: "Notes horodatées par auteur + timeline complète (changements de statut, assignations, appels)." },
   ]},
   { section: "Distribution & assignation", items: [
-    { name: "Assignation manuelle", status: "proto", desc: "Le manager attribue un lead à un agent. L'agent ne voit que ses leads assignés." },
-    { name: "Règles d'assignation", status: "planned", desc: "Round-robin, par zone, par score (top agents = leads hot), par charge (moins de leads actifs)." },
-    { name: "Actions groupées", status: "planned", desc: "Sélection multiple — assigner, changer statut, exporter en lot." },
-    { name: "Notification email", status: "planned", desc: "Toggle par agence — email automatique quand un nouveau lead arrive. Badge in-app pour le reste." },
+    { name: "Assignation manuelle", status: "proto", desc: "Le manager attribue un lead à un agent via le drawer. L'agent ne voit que ses leads." },
+    { name: "Actions groupées", status: "proto", desc: "Assigner, changer statut, archiver, supprimer — barre d'actions en bas du tableau. Contenu des popovers en cours." },
+    { name: "Règles d'assignation", status: "planned", desc: "Round-robin, par zone, par score, par charge — configurable par agence." },
+    { name: "Notification email", status: "planned", desc: "Toggle par agence — email automatique à l'arrivée d'un nouveau lead." },
   ]},
   { section: "Types de leads", items: [
-    { name: "Acquéreurs", status: "planned", desc: "Budget, type de projet, secteur (Rive Gauche/Droite/Centre), horizon, préférence de contact. Pipeline : À traiter → Converti." },
-    { name: "Vendeurs", status: "planned", desc: "Type de bien, surface, pièces, état, prix attendu, projet double (vente + achat). Pipeline : À traiter → Vendu." },
-    { name: "Dual flag", status: "planned", desc: "Checkbox « Aussi vendeur ? » / « Aussi acheteur ? » dans le drawer. Simple flag, pas de records liés." },
-    { name: "Création manuelle", status: "planned", desc: "Leads hors Meta — walk-ins, recommandations, formulaire site, appels." },
+    { name: "Acquéreurs", status: "proto", desc: "Budget, type de projet, secteur (Rive Gauche/Droite/Centre), horizon. 10 leads dummy avec données complètes." },
+    { name: "Vendeurs", status: "proto", desc: "Surface, pièces, état, prix attendu, projet double. 2 leads dummy intégrés, même interface." },
+    { name: "Dual flag", status: "planned", desc: "Checkbox « Aussi vendeur ? » / « Aussi acheteur ? » dans le drawer." },
+    { name: "Création manuelle", status: "planned", desc: "Leads hors Meta — bouton + avec formulaire rapide + vue complète." },
   ]},
   { section: "Données & feedback", items: [
-    { name: "Base de données", status: "planned", desc: "Archive complète de tous les leads — y compris convertis, perdus, expirés. Meta expire après 90 jours, notre outil conserve tout." },
-    { name: "Feedback loop", status: "planned", desc: "Quand un lead est Non qualifié ou Perdu : menu raison (mauvais numéro, budget faux, pas sérieux, doublon, autre). Données remontées pour optimiser les campagnes." },
-    { name: "Export", status: "planned", desc: "CSV et Excel — données filtrées, exploitables hors dashboard." },
-    { name: "Filtres & recherche", status: "planned", desc: "Agent, statut, budget, localisation, score, date — combinables. Recherche par nom/téléphone/email." },
+    { name: "Base de données", status: "planned", desc: "Archive complète — Meta expire après 90 jours, notre outil conserve tout." },
+    { name: "Feedback loop", status: "planned", desc: "Raison quand Non qualifié ou Perdu. Données remontées pour optimiser les campagnes." },
+    { name: "Export", status: "planned", desc: "CSV et Excel — données filtrées." },
+    { name: "Filtres avancés", status: "planned", desc: "Score, source, agent, vérifié, date, afficher les perdus — popover multi-dimensionnel." },
   ]},
-  { section: "Pages & navigation", items: [
-    { name: "Page Agents", status: "proto", desc: "Cards agents — leads, conversions, temps de réponse, barre de progression." },
-    { name: "Tableau de bord", status: "proto", desc: "KPIs, graphique hebdomadaire, sources (Meta vs Manuel), répartition statuts, équipe." },
+  { section: "Shell & navigation", items: [
+    { name: "Sidebar", status: "proto", desc: "260px, sticky, logo agence (Magrey & Sons), sélecteur ville, navigation, dark mode, feedback card. Tablette 208px." },
+    { name: "Topbar", status: "proto", desc: "Sticky avec ombre au scroll, bouton +, cloche notifications, menu utilisateur avec déconnexion." },
+    { name: "Sélecteur d'agence", status: "proto", desc: "Agence + ville avec map-pin. Multi-ville pour les admins." },
+    { name: "Drawer", status: "proto", desc: "480px desktop, plein écran mobile. 4 onglets, footer actions (Appeler, WhatsApp, Template). Structure prête." },
+    { name: "Responsive", status: "proto", desc: "Mobile (<768px) : sidebar overlay, drawer plein écran, KPIs 2 colonnes, bulk bar icon-only. Tablette (<1024px) : sidebar 208px." },
+  ]},
+  { section: "Pages à venir", items: [
+    { name: "Tableau de bord", status: "planned", desc: "KPIs, graphiques, carte Paris (SVG prêt), sources, statuts, équipe." },
+    { name: "Page Agents", status: "planned", desc: "Cards agents avec métriques de performance." },
     { name: "Page Campagnes", status: "planned", desc: "Liste campagnes Meta — statut, budget, leads, coût par lead." },
-    { name: "Page Paramètres", status: "planned", desc: "Réglages agence, pipelines, notifications, intégrations." },
+    { name: "Database", status: "planned", desc: "Archive de tous les leads — recherche, filtres, export." },
+    { name: "Paramètres", status: "planned", desc: "Réglages agence, pipelines, notifications, intégrations." },
   ]},
   { section: "Infrastructure", items: [
     { name: "Auth / Rôles", status: "planned", desc: "Manager Agence + Agent. Sessions Express + PostgreSQL. Admin Open House en Phase 4.", essential: true },
-    { name: "Multi-tenancy", status: "planned", desc: "agency_id sur chaque requête dès le départ. Couche admin ajoutée facilement en Phase 4.", essential: true },
-    { name: "Meta — Webhooks", status: "planned", desc: "Réception leads en temps réel sur Hetzner CPX22. Zapier/Make en interim si nécessaire." },
-    { name: "Meta — CAPI", status: "planned", desc: "Événements pipeline → Meta pour optimiser le ciblage. Contact → Lead → Purchase." },
+    { name: "Multi-tenancy", status: "planned", desc: "agency_id sur chaque requête dès le départ. Couche admin Phase 4.", essential: true },
+    { name: "Meta — Webhooks", status: "planned", desc: "Réception leads en temps réel sur Hetzner CPX22." },
+    { name: "Meta — CAPI", status: "planned", desc: "Événements pipeline → Meta. Contact → Lead → Purchase." },
   ]},
 ];
 
