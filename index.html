@@ -1,18 +1,31 @@
 <!doctype html>
 <!--
   Open House Prospects — Step 1 Shell
-  v0.5.1 — mobile sidebar height fix
+  v0.6.1 — drawer integrated + mobile fix + route placeholders
   Reference: docs/DESIGN_SPEC.md
   Workflow: docs/DESIGN_PROTOCOL.md
 
-  Changes vs v0.5:
-  - Mobile sidebar now correctly stretches to full viewport height.
-    Previous bug: position:fixed with only top:0 let content sizing collapse
-    the sidebar; topbar bled at the top, page content at the bottom.
-    Fix: added bottom:0 + height:100dvh for iOS Safari URL-bar correctness.
-  - Mobile "+" button CSS selector updated to match the current aria-label
-    (was "Ajouter", now "Ajouter un prospect"); previously stayed visible
-    on mobile by accident.
+  Changes vs v0.5.1:
+  - Drawer (lead detail panel) integrated. Click any lead card to open.
+    Structure matches drawer_mockup.html: below-topbar, respects-sidebar, 480px,
+    no backdrop, clickable cards behind. Mobile: full-screen takeover, back-arrow
+    replaces close-X, tabs scroll horizontally, body-scroll locked.
+  - 6 dummy leads added to state.leads (schema preview of DATA_MODEL.md).
+    Step 2 will swap these cards for a real table row structure; the drawer
+    contract stays the same (state.drawer = { leadId, tab }).
+  - Drawer contents are placeholder — 4 tabs (Infos, Qualification, Activité,
+    Notes), clicking each switches the active tab but the body still shows the
+    placeholder. Real form/timeline/notes content lands in Step 3.
+  - ESC key closes drawer/menus/sidebar (a11y).
+  - Clicking the same lead twice toggles the drawer closed; clicking a
+    different lead swaps contents without re-animating.
+  - CSS architecture: media queries moved to end of stylesheet (mobile-first
+    cascade) — previously desktop .drawer{width:480px} was overriding the
+    mobile width:100% rule due to source order.
+  - Route-aware content: non-Leads routes now show "à venir" placeholder
+    instead of incorrectly showing Leads content.
+  - Removed unused tokens: --accent-purple, --accent-pink, --purple-soft,
+    --pink-soft. Added --violet-soft for the "En cours" status pill.
 -->
 <html lang="fr">
 <head>
@@ -50,19 +63,16 @@
 
     /* Accents */
     --accent-blue:    #5B6DFF;
-    --accent-purple:  #9B7CFF;
     --accent-green:   #4CC38A;
     --accent-red:     #FF6B6B;
     --accent-amber:   #F5B94C;
-    --accent-pink:    #F5A3C7;
 
-    /* Accent-soft (icon badge tints) */
+    /* Accent-soft (badge tints) */
     --blue-soft:   #E8ECFF;
-    --purple-soft: #EDE7FF;
     --green-soft:  #E4F4E9;
     --red-soft:    #FDE7E7;
     --amber-soft:  #FBF0DC;
-    --pink-soft:   #FBE9F1;
+    --violet-soft: #EDE7FF;  /* for "En cours" status pill */
 
     /* Radius */
     --r-xs: 6px;
@@ -885,7 +895,196 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     RESPONSIVE
+     RESPONSIVE rules live at the bottom of the stylesheet so they
+     override all base rules regardless of base-rule source order.
+     See end of this <style> block.
+     ═══════════════════════════════════════════════════════════════ */
+
+  .hamburger {
+    display: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-sm);
+    place-items: center;
+    color: var(--text-secondary);
+  }
+  .hamburger:hover { background: var(--surface-tint); color: var(--text-primary); }
+  .hamburger svg { width: 20px; height: 20px; stroke-width: 1.5; }
+
+  .mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(28,28,31,0.3);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  .mobile-overlay[data-visible="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DRAWER (lead detail panel)
+     Desktop: below-topbar, respects-sidebar, 480px, no backdrop.
+     Mobile:  full-screen takeover with back arrow.
+     Structure per DESIGN_SPEC.md §17 drawer-boundaries decision.
+     Contents are placeholder — real form lives in Step 3.
+     ═══════════════════════════════════════════════════════════════ */
+  .drawer {
+    position: fixed;
+    top: var(--header-h);
+    right: 0;
+    bottom: 0;
+    width: 480px;
+    background: var(--panel);
+    border-left: 1px solid var(--border-divider);
+    box-shadow: -16px 0 48px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+    transform: translateX(100%);
+    transition: transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .drawer[data-open="true"] {
+    transform: translateX(0);
+  }
+
+  .drawer-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .drawer-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-tint);
+    border: 1px solid var(--border-subtle);
+    display: grid;
+    place-items: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 120ms ease;
+  }
+  .drawer-close:hover {
+    background: var(--hover-warm);
+    color: var(--text-primary);
+  }
+  .drawer-close svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+  }
+  .drawer-header-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .drawer-name {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .drawer-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #E4F4E9;
+    color: #2F9D6F;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: var(--r-pill);
+  }
+  .drawer-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .drawer-tabs {
+    display: flex;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 24px;
+  }
+  .drawer-tab {
+    padding: 12px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    background: transparent;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    font-family: inherit;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .drawer-tab:hover { color: var(--text-body); }
+  .drawer-tab[aria-selected="true"] {
+    color: var(--text-primary);
+    font-weight: 600;
+    border-bottom-color: var(--accent-blue);
+  }
+
+  .drawer-body {
+    flex: 1;
+    padding: 20px 24px;
+    overflow-y: auto;
+    background: var(--surface-tint);
+  }
+  .drawer-placeholder {
+    padding: 28px 20px;
+    border: 1px dashed var(--border-divider);
+    border-radius: var(--r-md);
+    background: var(--panel);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .drawer-placeholder strong {
+    display: block;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+
+  .drawer-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    gap: 10px;
+    background: var(--panel);
+  }
+  .drawer-footer .btn { flex: 1; }
+
+  /* Clickable scroll-test cards (step-1 stand-in for lead rows) */
+  .scroll-test-card {
+    cursor: pointer;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .scroll-test-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-xs);
+  }
+  .scroll-test-card[data-selected="true"] {
+    background: #F2F5FF;
+    border-color: #B5C4FF;
+  }
+  /* ═══════════════════════════════════════════════════════════════
+     RESPONSIVE (placed last so these override all base rules
+     regardless of the order base rules appear above)
      ═══════════════════════════════════════════════════════════════ */
   @media (max-width: 1024px) {
     :root { --sidebar-w: 208px; }
@@ -927,32 +1126,44 @@
     .hamburger { display: grid !important; }
     .content { padding: 0 16px 16px; }
     .empty-state { flex-direction: column; align-items: flex-start; gap: 12px; }
-  }
 
-  .hamburger {
-    display: none;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--r-sm);
-    place-items: center;
-    color: var(--text-secondary);
-  }
-  .hamburger:hover { background: var(--surface-tint); color: var(--text-primary); }
-  .hamburger svg { width: 20px; height: 20px; stroke-width: 1.5; }
+    /* Mobile drawer: full-screen takeover, above everything */
+    .drawer {
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: auto;
+      height: 100vh;
+      height: 100dvh;
+      border-left: 0;
+      box-shadow: none;
+      z-index: 70;
+    }
+    .drawer-header {
+      padding: 14px 16px;
+      align-items: center;
+    }
+    .drawer-name { font-size: 17px; }
+    .drawer-meta { font-size: 12px; }
+    .drawer-tabs {
+      padding: 0 16px;
+      gap: 18px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .drawer-tab { white-space: nowrap; }
+    .drawer-body { padding: 16px; }
+    .drawer-footer {
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      gap: 8px;
+    }
+    /* Mobile: close button becomes a back arrow */
+    .drawer-close-icon-desktop { display: none !important; }
+    .drawer-close-icon-mobile  { display: inline-grid !important; place-items: center; }
 
-  .mobile-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(28,28,31,0.3);
-    backdrop-filter: blur(4px);
-    z-index: 50;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 200ms ease;
-  }
-  .mobile-overlay[data-visible="true"] {
-    opacity: 1;
-    pointer-events: auto;
+    /* On mobile, lock body scroll behind the drawer */
+    body[data-drawer-open="true"] { overflow: hidden; }
   }
   </style>
 </head>
@@ -995,6 +1206,7 @@ const state = {
   sidebarOpen: false,        // mobile only
   agencySwitcherOpen: false, // sidebar dropdown
   userMenuOpen: false,       // topbar dropdown
+  drawer: null,              // null | { leadId, tab: "infos"|"qualification"|"activite"|"notes" }
 
   // team kept in state for future uses (assignment dropdowns, etc.) — no longer displayed in topbar
   team: [
@@ -1004,6 +1216,18 @@ const state = {
   ],
 
   notifications: 7,
+
+  // Dummy leads — these stand in for real data until Step 2 wires a proper table.
+  // The 6 scroll-test cards on the Leads page each map to one of these.
+  // Schema is a simplified preview of what DATA_MODEL.md specs; real fields land in Step 3.
+  leads: [
+    { id: 1, initials: "ML", tone: "#A855F7", name: "Marie Lefèvre",        status: "Qualifié",  statusTone: "green",  budget: "450 000 €",   city: "Paris 16e", type: "Acquéreur", timeline: "1–3 mois" },
+    { id: 2, initials: "PD", tone: "#0EA5E9", name: "Pierre Durand",         status: "En cours",  statusTone: "violet", budget: "320 000 €",   city: "Neuilly",   type: "Acquéreur", timeline: "3–6 mois" },
+    { id: 3, initials: "SM", tone: "#6366F1", name: "Sophie Martin",         status: "Nouveau",   statusTone: "blue",   budget: "680 000 €",   city: "Paris 7e",  type: "Vendeur",   timeline: "Immédiat" },
+    { id: 4, initials: "JM", tone: "#14B8A6", name: "Jean-Baptiste Moreau",  status: "À rappeler",statusTone: "amber",  budget: "275 000 €",   city: "Boulogne",  type: "Acquéreur", timeline: "6 mois+" },
+    { id: 5, initials: "CR", tone: "#F97316", name: "Camille Rousseau",      status: "Nouveau",   statusTone: "blue",   budget: "520 000 €",   city: "Paris 8e",  type: "Vendeur",   timeline: "Immédiat" },
+    { id: 6, initials: "AB", tone: "#EF4444", name: "Antoine Bernard",       status: "Qualifié",  statusTone: "green",  budget: "895 000 €",   city: "Paris 17e", type: "Acquéreur", timeline: "1–3 mois" },
+  ],
 };
 
 function setState(patch) {
@@ -1029,6 +1253,11 @@ const icon = {
   check:       () => svg(`<path d="M20 6L9 17l-5-5"/>`),
   user:        () => svg(`<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>`),
   logout:      () => svg(`<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>`),
+  close:       () => svg(`<path d="M18 6L6 18M6 6l12 12"/>`),
+  arrowLeft:   () => svg(`<path d="M19 12H5M12 19l-7-7 7-7"/>`),
+  phone:       () => svg(`<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>`),
+  messageCircle: () => svg(`<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>`),
+  send:        () => svg(`<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>`),
 
   // nav
   home:        () => svg(`<path d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V10.5z"/>`),
@@ -1320,30 +1549,64 @@ function renderTopbar() {
   `;
 }
 
-/* ───── Step-1 content placeholder ───── */
+/* ───── Step-1 content placeholder ─────
+   The Leads route shows lead cards (stand-in until Step 2).
+   Other routes show a simple "à venir" placeholder to make routing feel real. */
 function renderContent() {
   return `
     <main class="content">
-      <div class="empty-state">
-        <div class="empty-state-left">
-          <div class="empty-state-title">Shell — étape 1</div>
-          <div class="empty-state-body">
-            Sidebar + topbar en place. Page active : <code>${state.route}</code>. Le contenu de <strong>Leads</strong> arrive à l'étape 2.
-          </div>
-        </div>
-        <div class="empty-state-chip">v0.5.1</div>
-      </div>
-      ${renderScrollTestContent()}
+      ${renderRouteContent()}
     </main>
   `;
 }
 
-function renderScrollTestContent() {
-  // Temporary — removed when Step 2 adds real Leads content.
-  // Exists only so we can evaluate the sticky topbar behavior during scroll.
-  const buttonDemo = `
-    <div class="scroll-test-card">
-      <div class="scroll-test-card-title">Système de boutons · v0.5 (Option B)</div>
+function renderRouteContent() {
+  if (state.route === "leads") return renderLeadsContent();
+  return renderRouteComingSoon();
+}
+
+function renderLeadsContent() {
+  return `
+    <div class="empty-state">
+      <div class="empty-state-left">
+        <div class="empty-state-title">Shell — étape 1</div>
+        <div class="empty-state-body">
+          Sidebar + topbar + tiroir en place. Page active : <code>${state.route}</code>. Cliquez une carte pour ouvrir le tiroir. Le contenu réel arrive à l'étape 2 (table) et étape 3 (tiroir).
+        </div>
+      </div>
+      <div class="empty-state-chip">v0.6.1</div>
+    </div>
+    ${renderButtonDemo()}
+    ${renderLeadCards()}
+  `;
+}
+
+function renderRouteComingSoon() {
+  const labels = {
+    dashboard: "Tableau de bord",
+    agents:    "Agents",
+    campaigns: "Campagnes",
+    database:  "Database",
+    settings:  "Paramètres",
+    help:      "Aide",
+  };
+  const title = labels[state.route] || state.route;
+  return `
+    <div class="empty-state">
+      <div class="empty-state-left">
+        <div class="empty-state-title">${title}</div>
+        <div class="empty-state-body">Page à construire. Cette section sera implémentée après l'étape 2 (Leads) et l'étape 3 (tiroir).</div>
+      </div>
+      <div class="empty-state-chip">v0.6.1</div>
+    </div>
+  `;
+}
+
+function renderButtonDemo() {
+  // Temporary — removed in Step 2 when real Leads content arrives.
+  return `
+    <div class="scroll-test-card" style="cursor:default;padding:20px 24px;margin-top:16px;">
+      <div class="scroll-test-card-title">Système de boutons · v0.6 (Option B)</div>
       <div class="scroll-test-card-body" style="margin-bottom:16px;">
         Aperçu du système verrouillé. Toutes les actions textuelles du produit passent par <code style="font-family:var(--font-mono);font-size:12px;background:var(--surface-tint);padding:1px 5px;border-radius:4px;">renderButton()</code>.
       </div>
@@ -1361,15 +1624,100 @@ function renderScrollTestContent() {
       </div>
     </div>
   `;
-  const cards = Array.from({ length: 6 }, (_, i) => `
-    <div class="scroll-test-card">
-      <div class="scroll-test-card-title">Carte ${i + 1} · test de défilement</div>
-      <div class="scroll-test-card-body">
-        Contenu factice pour forcer le défilement. Cette section disparaît à l'étape 2 quand la vraie page Leads est construite.
+}
+
+function renderLeadCards() {
+  // Temporary stand-in for the real leads table.
+  // These cards are click targets so we can feel the drawer interaction in the shell stage.
+  const cards = state.leads.map(lead => {
+    const selected = state.drawer?.leadId === lead.id;
+    return `
+      <div class="scroll-test-card"
+           data-action="open-drawer"
+           data-lead-id="${lead.id}"
+           data-selected="${selected}"
+           role="button" tabindex="0">
+        <div style="display:flex;align-items:center;gap:14px;">
+          ${renderAvatar(lead.initials, lead.tone, 36)}
+          <div style="flex:1;min-width:0;">
+            <div class="scroll-test-card-title">${lead.name}</div>
+            <div class="scroll-test-card-body" style="margin-top:2px;">${lead.budget} · ${lead.city} · ${lead.type}</div>
+          </div>
+          <div class="drawer-badge" style="background:${badgeBg(lead.statusTone)};color:${badgeFg(lead.statusTone)};">${lead.status}</div>
+        </div>
       </div>
-    </div>
-  `).join("");
-  return `<div class="scroll-test">${buttonDemo}${cards}</div>`;
+    `;
+  }).join("");
+  return `<div class="scroll-test">${cards}</div>`;
+}
+
+function badgeBg(tone) {
+  return {
+    green:  "#E4F4E9",
+    violet: "#EDE7FF",
+    blue:   "#E8ECFF",
+    amber:  "#FBF0DC",
+  }[tone] || "#F4F4F6";
+}
+function badgeFg(tone) {
+  return {
+    green:  "#2F9D6F",
+    violet: "#6D48DB",
+    blue:   "#5B6DFF",
+    amber:  "#8C5A08",
+  }[tone] || "#6E6B64";
+}
+
+function renderDrawer() {
+  // Mounted conditionally — only renders the DOM when state.drawer is set.
+  // Sliding animation handled by the data-open attribute on the container.
+  if (!state.drawer) return "";
+  const lead = state.leads.find(l => l.id === state.drawer.leadId);
+  if (!lead) return "";
+  const activeTab = state.drawer.tab;
+  const tabs = [
+    { id: "infos",         label: "Infos" },
+    { id: "qualification", label: "Qualification" },
+    { id: "activite",      label: "Activité" },
+    { id: "notes",         label: "Notes" },
+  ];
+  return `
+    <aside class="drawer" data-open="true" role="dialog" aria-label="Détails du prospect">
+      <div class="drawer-header">
+        <button class="drawer-close" data-action="close-drawer" aria-label="Fermer">
+          <span class="drawer-close-icon-desktop">${icon.close()}</span>
+          <span class="drawer-close-icon-mobile" style="display:none;">${icon.arrowLeft()}</span>
+        </button>
+        <div class="drawer-header-text">
+          <div class="drawer-name">
+            ${lead.name}
+            <span class="drawer-badge" style="background:${badgeBg(lead.statusTone)};color:${badgeFg(lead.statusTone)};">${lead.status}</span>
+          </div>
+          <div class="drawer-meta">${lead.budget} · ${lead.city} · ${lead.type} · ${lead.timeline}</div>
+        </div>
+      </div>
+      <div class="drawer-tabs" role="tablist">
+        ${tabs.map(t => `
+          <button class="drawer-tab"
+                  role="tab"
+                  aria-selected="${t.id === activeTab}"
+                  data-action="switch-drawer-tab"
+                  data-tab="${t.id}">${t.label}</button>
+        `).join("")}
+      </div>
+      <div class="drawer-body" role="tabpanel">
+        <div class="drawer-placeholder">
+          <strong>Onglet « ${tabs.find(t => t.id === activeTab).label} »</strong>
+          Contenu construit à l'étape 3. Pour l'étape 1 (shell), on évalue la structure, les transitions, et les boundaries du tiroir uniquement.
+        </div>
+      </div>
+      <div class="drawer-footer">
+        ${renderButton({ icon: icon.phone(),         label: "Appeler" })}
+        ${renderButton({ icon: icon.messageCircle(), label: "WhatsApp" })}
+        ${renderButton({ icon: icon.send(),          label: "Template", variant: "primary" })}
+      </div>
+    </aside>
+  `;
 }
 
 /* ───── Root render ───── */
@@ -1383,6 +1731,7 @@ function renderApp() {
       </div>
     </div>
     <div class="mobile-overlay" data-visible="${state.sidebarOpen}"></div>
+    ${renderDrawer()}
   `;
 }
 
@@ -1393,6 +1742,8 @@ function renderApp() {
    ═══════════════════════════════════════════════════════════════ */
 function render() {
   document.getElementById("app").innerHTML = renderApp();
+  // Reflect drawer state on body so mobile CSS can lock scroll.
+  document.body.setAttribute("data-drawer-open", state.drawer ? "true" : "false");
 }
 
 document.addEventListener("click", (e) => {
@@ -1459,6 +1810,24 @@ document.addEventListener("click", (e) => {
       // Stub — opens the "Ajouter un prospect" modal. Form built after Step 2.
       alert("Ajouter un prospect — à venir. Construit après l'étape 2.");
       break;
+    case "open-drawer": {
+      const leadId = Number(target.getAttribute("data-lead-id"));
+      // If clicking the same lead that's open, close. If clicking a different one, swap.
+      if (state.drawer?.leadId === leadId) {
+        setState({ drawer: null });
+      } else {
+        setState({ drawer: { leadId, tab: "infos" } });
+      }
+      break;
+    }
+    case "close-drawer":
+      setState({ drawer: null });
+      break;
+    case "switch-drawer-tab": {
+      const tab = target.getAttribute("data-tab");
+      setState({ drawer: { ...state.drawer, tab } });
+      break;
+    }
   }
 });
 
@@ -1467,6 +1836,15 @@ document.addEventListener("click", (e) => {
   if (e.target.classList.contains("mobile-overlay")) {
     setState({ sidebarOpen: false });
   }
+});
+
+/* ESC key closes open drawers and dropdowns */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (state.drawer)              { setState({ drawer: null });             return; }
+  if (state.userMenuOpen)        { setState({ userMenuOpen: false });      return; }
+  if (state.agencySwitcherOpen)  { setState({ agencySwitcherOpen: false });return; }
+  if (state.sidebarOpen)         { setState({ sidebarOpen: false });       return; }
 });
 
 /* Scroll-aware topbar: add a subtle bottom border once content scrolls under it */
