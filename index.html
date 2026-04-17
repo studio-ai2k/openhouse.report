@@ -1,0 +1,1108 @@
+<!doctype html>
+<!--
+  Open House Prospects — Step 1 Shell
+  v0.2.3 — logo frame adapts to light-background logos
+  Reference: docs/DESIGN_SPEC.md
+  Workflow: docs/DESIGN_PROTOCOL.md
+
+  Changes vs v0.2.2:
+  - Agency avatar: when agency.logo is set, frame switches to white background
+    + subtle border + 4px internal padding. Works for dark-on-light logos
+    (the common case). Initials fallback uses the dark-circle variant.
+  - object-fit: cover → contain so logos display fully, not cropped
+  - Fixed filename: magrey_logo.PNG (uppercase, matches GitHub file)
+-->
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Open House Prospects</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+  /* ═══════════════════════════════════════════════════════════════
+     DESIGN TOKENS — single source of truth. Every color, radius,
+     shadow, font-size lives here. No magic numbers below this block.
+     ═══════════════════════════════════════════════════════════════ */
+  :root {
+    /* Neutrals — cool palette (locked) */
+    --frame:          #F5F5F7;
+    --sidebar-bg:     #FAFAFB;
+    --panel:          #FFFFFF;
+    --surface-tint:   #F4F4F6;  /* general tint surface */
+    --hover-warm:     #EFEFF2;  /* nav hover (name retained from warm era — it's just "hover") */
+    --active-warm:    #E7E7EC;  /* nav active */
+    --row-hover:      #FAFAFB;
+
+    --border-subtle:  #ECECEF;
+    --border-divider: #E6E6EA;
+    --border-strong:  #D8D8DE;  /* NEW — visible borders (icon buttons, user menu, search) */
+
+    --text-primary:   #1C1C1F;
+    --text-body:      #3D3A35;
+    --text-secondary: #6E6B64;
+    --text-muted:     #9B9892;
+
+    /* Accents */
+    --accent-blue:    #5B6DFF;
+    --accent-purple:  #9B7CFF;
+    --accent-green:   #4CC38A;
+    --accent-red:     #FF6B6B;
+    --accent-amber:   #F5B94C;
+    --accent-pink:    #F5A3C7;
+
+    /* Accent-soft (icon badge tints) */
+    --blue-soft:   #E8ECFF;
+    --purple-soft: #EDE7FF;
+    --green-soft:  #E4F4E9;
+    --red-soft:    #FDE7E7;
+    --amber-soft:  #FBF0DC;
+    --pink-soft:   #FBE9F1;
+
+    /* Radius */
+    --r-xs: 6px;
+    --r-sm: 10px;
+    --r-md: 14px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+    --r-pill: 999px;
+
+    /* Shadow */
+    --shadow-none:   none;
+    --shadow-xs:     0 1px 2px rgba(0,0,0,0.02);
+    --shadow-sm:     0 2px 8px rgba(0,0,0,0.03);
+    --shadow-md:     0 8px 24px rgba(0,0,0,0.04);
+    --shadow-shell:  0 8px 32px rgba(0,0,0,0.04);
+    --shadow-drawer: -12px 0 40px rgba(0,0,0,0.08);
+
+    /* Type */
+    --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    /* Layout */
+    --sidebar-w: 260px;
+    --header-h: 88px;
+    --shell-pad: 24px;
+  }
+
+  /* Cool palette is now the default — warm A/B toggle removed at design lock */
+
+  /* ═══════════════════════════════════════════════════════════════
+     BASE
+     ═══════════════════════════════════════════════════════════════ */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--frame);
+    color: var(--text-body);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  input, select { font: inherit; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-divider); border-radius: var(--r-pill); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     APP SHELL
+     ═══════════════════════════════════════════════════════════════ */
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    min-height: 100vh;
+    background: var(--frame);
+  }
+
+  /* ───────── Sidebar ───────── */
+  .sidebar {
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-divider);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    margin-bottom: 16px;
+  }
+  .brand-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #5B6DFF 0%, #9B7CFF 100%);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 3px;
+    padding: 6px;
+  }
+  .brand-mark span {
+    background: rgba(255,255,255,0.9);
+    border-radius: 2px;
+  }
+  .brand-mark span:nth-child(2) { background: rgba(255,255,255,0.6); }
+  .brand-mark span:nth-child(3) { background: rgba(255,255,255,0.7); }
+  .brand-mark span:nth-child(4) { background: rgba(255,255,255,0.95); }
+
+  .brand-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+
+  /* Agency + city switcher */
+  .agency-switcher {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .agency-switcher:hover { background: var(--hover-warm); }
+  .agency-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1C1C1F;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .agency-avatar[data-variant="logo"] {
+    background: #FFFFFF;
+    border: 1px solid var(--border-strong);
+    padding: 4px;
+  }
+  .agency-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .agency-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.2;
+  }
+  .agency-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .agency-city {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .agency-city svg {
+    width: 11px;
+    height: 11px;
+    display: inline-block;
+    vertical-align: -1px;
+    margin-right: 3px;
+    stroke-width: 2;
+    color: var(--text-muted);
+  }
+  .agency-switcher > svg { color: var(--text-muted); flex-shrink: 0; transition: transform 160ms ease; }
+  .agency-switcher[aria-expanded="true"] > svg { transform: rotate(180deg); }
+
+  .agency-switcher-wrap {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .agency-switcher-wrap .agency-switcher { margin-bottom: 0; }
+
+  .agency-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    box-shadow: var(--shadow-md);
+    padding: 6px;
+    z-index: 40;
+  }
+  .agency-menu-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 6px 10px 4px;
+  }
+  .agency-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r-xs);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background 100ms ease;
+  }
+  .agency-menu-item svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    stroke-width: 2;
+  }
+  .agency-menu-item span {
+    flex: 1;
+  }
+  .agency-menu-item:hover { background: var(--hover-warm); }
+  .agency-menu-item[data-active="true"] {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .agency-menu-item[data-active="true"] svg:last-child {
+    color: var(--accent-blue);
+  }
+
+  /* Section label */
+  .nav-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.8px;
+    padding: 0 10px;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+  }
+  .nav-group + .nav-group { margin-top: 20px; }
+
+  /* Nav items */
+  .nav-list { list-style: none; padding: 0; margin: 0; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 10px;
+    border-radius: var(--r-sm);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background 120ms ease;
+    position: relative;
+  }
+  .nav-item svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    stroke-width: 1.5;
+  }
+  .nav-item-label {
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+  }
+  .nav-item-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--panel);
+    padding: 2px 7px;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--border-subtle);
+  }
+  .nav-item:hover { background: var(--hover-warm); }
+  .nav-item[data-active="true"] {
+    background: var(--active-warm);
+  }
+  .nav-item[data-active="true"] .nav-item-label { font-weight: 600; color: var(--text-primary); }
+  .nav-item[data-active="true"] svg { color: var(--text-primary); }
+
+  /* Sidebar footer */
+  .sidebar-spacer { flex: 1; }
+
+  .sidebar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    height: 40px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  .sidebar-row svg { width: 16px; height: 16px; stroke-width: 1.5; }
+  .sidebar-row-label { flex: 1; }
+
+  /* Toggle switch */
+  .switch {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    border-radius: var(--r-pill);
+    background: var(--border-divider);
+    cursor: pointer;
+    transition: background 140ms ease;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: var(--shadow-xs);
+    transition: transform 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .switch[data-on="true"] { background: var(--text-primary); }
+  .switch[data-on="true"]::after { transform: translateX(14px); }
+
+  /* Help / info card at bottom */
+  .sidebar-card {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: var(--r-md);
+    background: var(--blue-soft);
+    border: 1px solid rgba(91, 109, 255, 0.12);
+  }
+  .sidebar-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .sidebar-card-body {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .sidebar-card-cta {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--text-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--r-sm);
+    text-align: center;
+    transition: background 120ms ease;
+  }
+  .sidebar-card-cta:hover { background: #000; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     MAIN CONTENT
+     ═══════════════════════════════════════════════════════════════ */
+  .main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ───────── Top header ───────── */
+  .topbar {
+    height: var(--header-h);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border-bottom: 1px solid transparent; /* no border — whitespace separation */
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.4px;
+    margin: 0;
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .topbar-actions-icons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Avatar stack */
+  .avatar-stack {
+    display: flex;
+    align-items: center;
+  }
+  .avatar-stack .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--frame);
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    margin-left: -10px;
+  }
+  .avatar-stack .avatar:first-child { margin-left: 0; }
+  .avatar-more {
+    margin-left: -10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid var(--frame);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* Icon button */
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    color: var(--text-body);
+    display: grid;
+    place-items: center;
+    position: relative;
+    box-shadow: var(--shadow-xs);
+    transition: all 120ms ease;
+  }
+  .icon-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+  }
+  .icon-btn svg { width: 18px; height: 18px; stroke-width: 2; }
+
+  .notif-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: var(--r-pill);
+    background: var(--accent-red);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--frame);
+    line-height: 1;
+  }
+
+  /* Search */
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 320px;
+    height: 40px;
+    padding: 0 16px;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-pill);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  .search:focus-within {
+    border-color: var(--text-secondary);
+    box-shadow: 0 0 0 3px rgba(91, 109, 255, 0.08);
+  }
+  .search svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-body);
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+  .search input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+  .search input::placeholder { color: var(--text-muted); }
+
+  /* User menu */
+  .user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border-radius: var(--r-pill);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-xs);
+    transition: all 120ms ease;
+  }
+  .user-menu:hover {
+    border-color: var(--text-muted);
+    box-shadow: var(--shadow-sm);
+  }
+  .user-menu .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    display: grid;
+    place-items: center;
+  }
+  .user-menu svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-secondary);
+  }
+
+  /* ───────── Content area (empty in Step 1) ───────── */
+  .content {
+    flex: 1;
+    padding: 0 32px 32px;
+    min-height: 0;
+  }
+
+  /* Step-1 empty state (will be removed in Step 2) */
+  .empty-state {
+    margin-top: 4px;
+    padding: 24px 28px;
+    border: 1px dashed var(--border-divider);
+    border-radius: var(--r-md);
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .empty-state-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .empty-state-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .empty-state-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .empty-state code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 1px 5px;
+    background: var(--surface-tint);
+    border-radius: var(--r-xs);
+    color: var(--text-body);
+  }
+  .empty-state-chip {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 4px 10px;
+    background: var(--surface-tint);
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     RESPONSIVE
+     ═══════════════════════════════════════════════════════════════ */
+  @media (max-width: 1024px) {
+    :root { --sidebar-w: 208px; }
+    .topbar { padding: 0 24px; }
+    .content { padding: 0 24px 24px; }
+    .search { width: 240px; }
+  }
+
+  @media (max-width: 768px) {
+    .app-shell { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed;
+      left: 0; top: 0;
+      width: 280px;
+      transform: translateX(-100%);
+      transition: transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1);
+      z-index: 60;
+      box-shadow: var(--shadow-shell);
+    }
+    .sidebar[data-open="true"] { transform: translateX(0); }
+    .topbar {
+      padding: 0 16px;
+      gap: 12px;
+      height: 64px;
+    }
+    .topbar-actions { gap: 6px; }
+    .page-title { font-size: 18px; }
+    /* Trim the topbar on mobile — keep only bell + user */
+    .search,
+    .avatar-stack,
+    .icon-btn[aria-label="Ajouter"] {
+      display: none;
+    }
+    .hamburger { display: grid !important; }
+    .content { padding: 0 16px 16px; }
+    .empty-state { flex-direction: column; align-items: flex-start; gap: 12px; }
+  }
+
+  .hamburger {
+    display: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-sm);
+    place-items: center;
+    color: var(--text-secondary);
+  }
+  .hamburger:hover { background: var(--surface-tint); color: var(--text-primary); }
+  .hamburger svg { width: 20px; height: 20px; stroke-width: 1.5; }
+
+  .mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(28,28,31,0.3);
+    backdrop-filter: blur(4px);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+  .mobile-overlay[data-visible="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   STATE — single source of truth. Every render reads from here.
+   Every mutation goes through setState().
+   ═══════════════════════════════════════════════════════════════ */
+const state = {
+  // user + agency context
+  agency: {
+    id: 1,
+    name: "Magrey & Sons",
+    initials: "M",
+    logo: "magrey_logo.PNG",  // when present, img is used instead of initials
+    cities: [
+      { id: 1, name: "Paris" },
+      { id: 2, name: "Riviera" },
+    ],
+    currentCityId: 1,
+  },
+  user:   { id: 1, name: "Léo Martin", initials: "LM", tone: "#5B6DFF" },
+
+  // nav — active route
+  route: "leads",  // leads | dashboard | agents | campaigns | database | settings | help
+
+  // chrome state
+  darkMode: false,
+  sidebarOpen: false,        // mobile only
+  agencySwitcherOpen: false, // sidebar dropdown
+
+  // team (for avatar stack)
+  team: [
+    { initials: "SB", tone: "#6366f1" },
+    { initials: "MD", tone: "#0ea5e9" },
+    { initials: "JR", tone: "#a855f7" },
+  ],
+  teamMore: 2,
+
+  notifications: 7,
+};
+
+function setState(patch) {
+  Object.assign(state, patch);
+  render();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ICONS — inline SVG so we don't ship an icon lib.
+   Each icon is a function returning an SVG string with current color.
+   Stroke 1.5 for a thin-line feel matching the reference.
+   ═══════════════════════════════════════════════════════════════ */
+const icon = {
+  chevronDown: () => svg(`<path d="M6 9l6 6 6-6"/>`),
+  chevronRight:() => svg(`<path d="M9 6l6 6-6 6"/>`),
+  search:      () => svg(`<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>`),
+  bell:        () => svg(`<path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/>`),
+  plus:        () => svg(`<path d="M12 5v14M5 12h14"/>`),
+  menu:        () => svg(`<path d="M3 6h18M3 12h18M3 18h18"/>`),
+  moon:        () => svg(`<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>`),
+  help:        () => svg(`<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>`),
+  mapPin:      () => svg(`<path d="M20 10c0 7-8 13-8 13s-8-6-8-13a8 8 0 0116 0z"/><circle cx="12" cy="10" r="3"/>`),
+  check:       () => svg(`<path d="M20 6L9 17l-5-5"/>`),
+
+  // nav
+  home:        () => svg(`<path d="M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V10.5z"/>`),
+  barChart:    () => svg(`<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>`),
+  users:       () => svg(`<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>`),
+  megaphone:   () => svg(`<path d="M3 11v2a4 4 0 004 4h1l5 4V3L8 7H7a4 4 0 00-4 4z"/><path d="M18 8v8"/><path d="M21 10v4"/>`),
+  archive:     () => svg(`<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 001 1h12a1 1 0 001-1V8"/><path d="M10 12h4"/>`),
+  settings:    () => svg(`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>`),
+};
+function svg(body, size=24) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DATA — nav map
+   ═══════════════════════════════════════════════════════════════ */
+const navGroups = [
+  {
+    label: "MAIN",
+    items: [
+      { id: "leads",     label: "Leads",          icon: "home",      badge: "24" },
+      { id: "dashboard", label: "Tableau de bord", icon: "barChart" },
+      { id: "agents",    label: "Agents",         icon: "users" },
+      { id: "campaigns", label: "Campagnes",      icon: "megaphone" },
+      { id: "database",  label: "Database",       icon: "archive" },
+    ],
+  },
+  {
+    label: "PARAMÈTRES",
+    items: [
+      { id: "settings", label: "Paramètres", icon: "settings" },
+      { id: "help",     label: "Aide",       icon: "help" },
+    ],
+  },
+];
+
+const routeTitles = {
+  leads: "Leads",
+  dashboard: "Tableau de bord",
+  agents: "Agents",
+  campaigns: "Campagnes",
+  database: "Database",
+  settings: "Paramètres",
+  help: "Aide",
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENT-SHAPED RENDER FUNCTIONS
+   Each returns an HTML string. These map 1:1 to React components
+   if we ever port (see docs/DESIGN_PROTOCOL.md).
+   ═══════════════════════════════════════════════════════════════ */
+
+function renderBrand() {
+  return `
+    <div class="brand">
+      <div class="brand-left">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <span class="brand-name">Open House</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderAgencyAvatar(agency) {
+  if (agency.logo) {
+    return `<div class="agency-avatar" data-variant="logo"><img src="${agency.logo}" alt="${agency.name}" onerror="this.parentElement.removeAttribute('data-variant'); this.parentElement.innerHTML='${agency.initials}'"></div>`;
+  }
+  return `<div class="agency-avatar">${agency.initials}</div>`;
+}
+
+function renderAgencySwitcher(agency) {
+  const currentCity = agency.cities.find(c => c.id === agency.currentCityId);
+  const cityLabel = currentCity
+    ? `${icon.mapPin()}${currentCity.name}`
+    : "Toutes les villes";
+  const isOpen = state.agencySwitcherOpen;
+  return `
+    <div class="agency-switcher-wrap">
+      <div class="agency-switcher" data-action="toggle-agency-switcher" role="button" tabindex="0" aria-expanded="${isOpen}">
+        ${renderAgencyAvatar(agency)}
+        <div class="agency-text">
+          <div class="agency-name">${agency.name}</div>
+          <div class="agency-city">${cityLabel}</div>
+        </div>
+        ${icon.chevronDown()}
+      </div>
+      ${isOpen ? renderAgencyMenu(agency) : ""}
+    </div>
+  `;
+}
+
+function renderAgencyMenu(agency) {
+  const items = agency.cities.map(c => {
+    const active = c.id === agency.currentCityId;
+    return `
+      <div class="agency-menu-item" data-action="select-city" data-city-id="${c.id}" data-active="${active}" role="menuitem">
+        ${icon.mapPin()}
+        <span>${c.name}</span>
+        ${active ? icon.check() : ""}
+      </div>
+    `;
+  }).join("");
+  return `
+    <div class="agency-menu" role="menu">
+      <div class="agency-menu-label">Bureau actif</div>
+      ${items}
+    </div>
+  `;
+}
+
+function renderNavItem(item, active) {
+  const badge = item.badge
+    ? `<span class="nav-item-badge">${item.badge}</span>`
+    : "";
+  return `
+    <li>
+      <div class="nav-item" data-active="${active}" data-route="${item.id}" role="button" tabindex="0">
+        ${icon[item.icon]()}
+        <span class="nav-item-label">${item.label}</span>
+        ${badge}
+      </div>
+    </li>
+  `;
+}
+
+function renderNavGroup(group, activeRoute) {
+  return `
+    <div class="nav-group">
+      <div class="nav-section-label">${group.label}</div>
+      <ul class="nav-list">
+        ${group.items.map(it => renderNavItem(it, it.id === activeRoute)).join("")}
+      </ul>
+    </div>
+  `;
+}
+
+function renderDarkModeRow(on) {
+  return `
+    <div class="sidebar-row">
+      ${icon.moon()}
+      <span class="sidebar-row-label">Dark Mode</span>
+      <div class="switch" data-on="${on}" data-action="toggle-darkmode" role="switch" aria-checked="${on}"></div>
+    </div>
+  `;
+}
+
+function renderSidebarCard() {
+  return `
+    <div class="sidebar-card">
+      <div class="sidebar-card-title">Un retour à partager&nbsp;?</div>
+      <div class="sidebar-card-body">Bug, idée, frustration — on écoute tout.</div>
+      <a href="#" class="sidebar-card-cta">Envoyer un retour</a>
+    </div>
+  `;
+}
+
+function renderSidebar() {
+  return `
+    <aside class="sidebar" data-open="${state.sidebarOpen}">
+      ${renderBrand()}
+      ${renderAgencySwitcher(state.agency)}
+      ${navGroups.map(g => renderNavGroup(g, state.route)).join("")}
+      <div class="sidebar-spacer"></div>
+      ${renderDarkModeRow(state.darkMode)}
+      ${renderSidebarCard()}
+    </aside>
+  `;
+}
+
+/* ───── Topbar ───── */
+
+function renderAvatar(init, tone, size=28) {
+  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${tone}">${init}</div>`;
+}
+
+function renderAvatarStack(team, more) {
+  const avatars = team.map(m => renderAvatar(m.initials, m.tone)).join("");
+  const moreTag = more > 0 ? `<div class="avatar-more">+${more}</div>` : "";
+  return `<div class="avatar-stack">${avatars}${moreTag}</div>`;
+}
+
+function renderSearch() {
+  return `
+    <div class="search">
+      ${icon.search()}
+      <input type="text" placeholder="Rechercher..." aria-label="Rechercher" />
+    </div>
+  `;
+}
+
+function renderTopbar() {
+  return `
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="hamburger" data-action="open-sidebar" aria-label="Ouvrir le menu">${icon.menu()}</button>
+        <h1 class="page-title">${routeTitles[state.route] || ""}</h1>
+      </div>
+      <div class="topbar-actions">
+        ${renderAvatarStack(state.team, state.teamMore)}
+        <div class="topbar-actions-icons">
+          <button class="icon-btn" aria-label="Ajouter">${icon.plus()}</button>
+          <button class="icon-btn" aria-label="Notifications">
+            ${icon.bell()}
+            ${state.notifications > 0 ? `<span class="notif-badge">${state.notifications}</span>` : ""}
+          </button>
+        </div>
+        ${renderSearch()}
+        <button class="user-menu" aria-label="Profil">
+          ${renderAvatar(state.user.initials, state.user.tone, 32)}
+          ${icon.chevronDown()}
+        </button>
+      </div>
+    </header>
+  `;
+}
+
+/* ───── Step-1 content placeholder ───── */
+function renderContent() {
+  return `
+    <main class="content">
+      <div class="empty-state">
+        <div class="empty-state-left">
+          <div class="empty-state-title">Shell — étape 1</div>
+          <div class="empty-state-body">
+            Sidebar + topbar en place. Page active : <code>${state.route}</code>. Le contenu de <strong>Leads</strong> arrive à l'étape 2.
+          </div>
+        </div>
+        <div class="empty-state-chip">v0.2.3</div>
+      </div>
+    </main>
+  `;
+}
+
+/* ───── Root render ───── */
+function renderApp() {
+  return `
+    <div class="app-shell">
+      ${renderSidebar()}
+      <div class="main">
+        ${renderTopbar()}
+        ${renderContent()}
+      </div>
+    </div>
+    <div class="mobile-overlay" data-visible="${state.sidebarOpen}"></div>
+  `;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER + EVENT DELEGATION
+   One render function. One event listener. All interactions route
+   through data-action / data-route attributes.
+   ═══════════════════════════════════════════════════════════════ */
+function render() {
+  document.getElementById("app").innerHTML = renderApp();
+}
+
+document.addEventListener("click", (e) => {
+  // Outside-click closes the agency switcher
+  if (state.agencySwitcherOpen && !e.target.closest(".agency-switcher-wrap")) {
+    setState({ agencySwitcherOpen: false });
+    // fall through so other handlers can still react
+  }
+
+  const target = e.target.closest("[data-action], [data-route]");
+  if (!target) return;
+
+  // Nav
+  const route = target.getAttribute("data-route");
+  if (route) {
+    setState({ route, sidebarOpen: false, agencySwitcherOpen: false });
+    return;
+  }
+
+  // Actions
+  const action = target.getAttribute("data-action");
+  switch (action) {
+    case "toggle-darkmode":
+      setState({ darkMode: !state.darkMode });
+      break;
+    case "open-sidebar":
+      setState({ sidebarOpen: true });
+      break;
+    case "toggle-agency-switcher":
+      setState({ agencySwitcherOpen: !state.agencySwitcherOpen });
+      break;
+    case "select-city": {
+      const cityId = Number(target.getAttribute("data-city-id"));
+      setState({
+        agency: { ...state.agency, currentCityId: cityId },
+        agencySwitcherOpen: false,
+      });
+      break;
+    }
+  }
+});
+
+// Close mobile sidebar on overlay click
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("mobile-overlay")) {
+    setState({ sidebarOpen: false });
+  }
+});
+
+/* Initial render */
+render();
+</script>
+
+</body>
+</html>
