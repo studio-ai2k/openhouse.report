@@ -1,63 +1,44 @@
 <!doctype html>
 <!--
-  Open House Prospects — v0.10.1
-  Drawer header rebuilt · four parked items resolved in one pass
+  Open House Prospects — v0.10.2
+  Polish batch · three locked §10b items resolved
 
-  v0.10.1 locks the drawer header design Leo has been deferring across
-  the v0.9.x cycles. Four previously-parked items resolved as one
-  coherent header:
+  v0.10.2 is a small polish cycle on top of v0.10.1. Three locked
+  §10b items shipped as one batch, no structural changes:
 
-    1. Phone-verified badge — green pill with checkmark when
-       phoneVerified=true, amber pill with warning-triangle when false.
-       Inline with the phone number on row 4 of the header.
-    2. Score chip — moved from "nowhere in drawer" to the chip row on
-       row 3, alongside source icon and the new type chip.
-    3. Campaign name — replaces the old meta line on row 2. Rendered
-       with a megaphone icon prefix. Empty/"—" campaign = no row.
-       Budget / zone / timeline / projectType (the old meta line
-       content) move to the Infos tab as editable cards paired with
-       verbatim Meta form question labels (Step 3 scope).
-    4. Contact actions — NOT as duplicated footer buttons. Instead:
-       phone number on row 4 as a tel: link (native call on mobile),
-       email on row 5 as a click-to-copy row. Phone verified/not-
-       verified badge attaches to the phone, visually anchored to the
-       data it describes. Email copy-feedback mechanism (toast /
-       inline "Copié" / icon swap) is deferred — for now, silent
-       navigator.clipboard.writeText on tap.
+    1. Activity badges (mobile card) — now always render all 4 action
+       types (call, email, whatsapp, note) instead of only the ones
+       present on the lead. Done badges use solid-border muted styling;
+       not-yet-done badges use dashed-border muted-er styling. Agents
+       see the complete touchpoint checklist per lead, not just what's
+       happened. Badges shrunk from 24px → 20px to reduce visual weight
+       further. ACTIVITY_LABEL_PENDING added alongside ACTIVITY_LABEL
+       for the dashed-badge title/aria-label text.
 
-  Plus a new addition not in the original four parked items:
+    2. Drawer header icon consistency — all 4 icon-prefixed rows
+       (campaign megaphone, source, phone, email) now read as a
+       coherent family. Campaign megaphone normalized to 14px (was
+       13px) with text-muted color. Source chip container (circle +
+       fill + border) stripped inside .drawer-chip-row via nested
+       selector — the mobile card keeps the full source-chip pill
+       treatment via the unscoped .source-chip rule.
 
-    5. Buyer/Seller type chip on row 3 next to the source icon.
-       Blue-tinted for Acquéreur, amber-tinted for Vendeur — uses
-       the --blue-soft / --amber-soft palette that also drives the
-       Leads page 4px top band, so type identity reads consistently
-       across the app. Added because drawer is often viewed full-
-       screen on mobile where the page-level toggle context isn't
-       visible.
+    3. Sélectionner button active state lightened — previously filled
+       with near-black (var(--text-primary)) which out-weighted
+       everything else on the page in select mode. New ghost-style
+       treatment: surface-tint background + bold text + strong border.
+       Same pattern the Filter popover will adopt when it ships.
 
-  Final header shape (5 rows):
-    1. Name + status badge
-    2. 📣 Campaign name (skipped if blank)
-    3. [Source icon] [Type chip] [Score chip]
-    4. 📞 Phone + Verified/Non vérifié badge
-    5. ✉ Email (click-to-copy)
+  No new helpers, no new icons, no new data model changes. Pure CSS
+  tweaks + one renderActivityBadges logic change.
 
-  New icons: alertTriangle (non-verified state). megaphone already
-  existed for the sidebar nav. New helpers: renderTypeChip, renderVerifyBadge. New
-  CSS classes: .drawer-campaign, .drawer-chip-row, .drawer-contact,
-  .drawer-contact-item, .drawer-contact-email, .type-chip (--buyer /
-  --seller modifiers), .verify-badge (--ok / --no modifiers). Old
-  .drawer-meta and .drawer-header-extras retired. New click handler
-  action: "copy-email".
-
-  Not in v0.10.1 (still coming):
-  - Email copy-feedback mechanism (deferred per §10a)
-  - Step 3 drawer tab bodies (Infos / Qualification / Activité / Notes)
-    — the Infos tab now has more scope: it owns the editable budget /
-    zone / timeline / projectType fields that used to sit in the header
-    meta line, each paired with the verbatim Meta form label.
-  - CSS extraction into app/index.css (file now 3900+ lines — overdue,
-    flagged as its own structural cycle in HANDOFF §10a)
+  Not in v0.10.2 (remaining §10b items, each needs more input):
+  - Buyer/Seller toggle redesign (direction unclear)
+  - Agent vs Manager view (needs product discussion)
+  - Sidebar header whitespace (needs device look)
+  - Mobile card date-with-time (two implementation paths to pick)
+  - CAPI §8 framing rewrite (deferred to Step 3 cycle)
+  - PWA push notifications (scoped as Path B, sequenced for VPS migration)
 
   For prior version history, see HANDOFF.md §13 (audit notes).
 -->
@@ -1018,7 +999,7 @@
   .drawer-campaign {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     margin-top: 2px;
     font-size: 13px;
     color: var(--text-secondary);
@@ -1026,9 +1007,9 @@
     min-width: 0;
   }
   .drawer-campaign svg {
-    width: 13px;
-    height: 13px;
-    stroke: currentColor;
+    width: 14px;
+    height: 14px;
+    stroke: var(--text-muted);
     fill: none;
     stroke-width: 1.75;
     stroke-linecap: round;
@@ -1045,13 +1026,33 @@
   /* Chip row: source · type · score, row 3 of the header. Three chips,
      similar visual weight, each with a distinct job. Source = where
      they came from; Type = buyer/seller (type-accent palette); Score
-     = how hot. */
+     = how hot.
+
+     v0.10.2 — drawer-scoped override: strip the circle container on
+     the source chip when it's inside this row, so all 4 drawer icons
+     (campaign megaphone, source, phone, mail) read as a coherent
+     family of naked stroke icons. The mobile card keeps the full
+     source-chip pill treatment via the unscoped .source-chip rule. */
   .drawer-chip-row {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-top: 12px;
     flex-wrap: wrap;
+  }
+  .drawer-chip-row .source-chip {
+    width: auto;
+    height: auto;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    color: var(--text-muted);
+  }
+  .drawer-chip-row .source-chip svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.75;
   }
 
   /* Type chip — buyer/seller identifier with type-accent palette,
@@ -1461,17 +1462,22 @@
     border-color: var(--border-strong);
   }
   .leads-table-btn svg { width: 14px; height: 14px; stroke-width: 2; }
+  /* v0.10.2 — Sélectionner active state lightened. Previously filled
+     with --text-primary (near-black) which out-weighted everything
+     else on the page. New treatment: surface-tint background + bold
+     text + strong border. Still clearly reads as "active" without
+     shouting. Same ghost pattern the Filter popover will adopt when
+     it ships. */
   .leads-table-btn--active {
-    background: var(--text-primary);
-    border-color: var(--text-primary);
-    color: var(--panel);
+    background: var(--surface-tint);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+    font-weight: 600;
     box-shadow: none;
   }
   .leads-table-btn--active:hover {
-    background: var(--text-primary);
-    border-color: var(--text-primary);
-    color: var(--panel);
-    opacity: 0.92;
+    background: var(--row-hover);
+    border-color: var(--text-secondary);
   }
   .leads-table-btn-badge {
     display: inline-flex;
@@ -1903,26 +1909,39 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     flex-shrink: 0;
-    width: 24px;
+    width: 20px;
     padding-top: 2px;
   }
+  /* v0.10.2 — badges now ALWAYS show all 4 action types per lead.
+     .activity-badge--done: action has been taken. Solid border, muted
+       secondary color — reads as "checked off."
+     .activity-badge--pending: action not yet taken. Dashed border +
+       muted-er color — reads as "yet to do, not yet a signal."
+     Slightly smaller than v0.10.1 (20px vs 24px) to reduce visual
+     weight in the card's right column. */
   .activity-badge {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: transparent;
-    border: 1px solid var(--text-secondary);
-    color: var(--text-secondary);
     flex-shrink: 0;
   }
+  .activity-badge--done {
+    border: 1px solid var(--text-secondary);
+    color: var(--text-secondary);
+  }
+  .activity-badge--pending {
+    border: 1px dashed var(--border-strong);
+    color: var(--text-muted);
+  }
   .activity-badge svg {
-    width: 13px;
-    height: 13px;
+    width: 11px;
+    height: 11px;
     stroke-width: 2;
   }
 
@@ -3281,21 +3300,30 @@ function renderLeadRow(lead) {
   `;
 }
 
-/* Activity badges (v0.10.0). Returns HTML for the vertical stack of
-   outline-only badges on the mobile card's right side. Renders one
-   badge per distinct activity type present — multiple entries of the
-   same type (e.g., 3 calls) collapse to a single badge. Order is fixed:
-   call, email, whatsapp, note — so the visual position of each badge
-   is stable across leads regardless of which actions happened first. */
+/* Activity badges (v0.10.2 update). Returns HTML for the vertical stack
+   of outline badges on the mobile card's right side. ALL 4 badges always
+   render — done types get the full-stroke treatment, not-yet-done types
+   get a muted dashed-border treatment. This gives the agent a glance
+   view of the complete touchpoint checklist per lead, not just what's
+   been done. Order is fixed: call, email, whatsapp, note.
+
+   v0.10.0 shipped "one badge per distinct type present"; v0.10.2 shifts
+   to "always show all 4, with done vs pending visual distinction" per
+   spec locked in §10b. Also: badges are slightly smaller than v0.10.1
+   to reduce visual weight further. */
 const ACTIVITY_ORDER = ["call", "email", "whatsapp", "note"];
 const ACTIVITY_ICON  = { call: "phone", email: "mail", whatsapp: "messageCircle", note: "fileText" };
 const ACTIVITY_LABEL = { call: "Appelé", email: "Email envoyé", whatsapp: "WhatsApp", note: "Note ajoutée" };
+const ACTIVITY_LABEL_PENDING = { call: "Pas encore appelé", email: "Pas encore d'email", whatsapp: "Pas encore de WhatsApp", note: "Pas encore de note" };
 function renderActivityBadges(activity) {
-  if (!activity || activity.length === 0) return "";
-  const types = new Set(activity.map(a => a.type));
+  const doneTypes = new Set((activity || []).map(a => a.type));
   return ACTIVITY_ORDER
-    .filter(t => types.has(t))
-    .map(t => `<span class="activity-badge" title="${ACTIVITY_LABEL[t]}" aria-label="${ACTIVITY_LABEL[t]}">${icon[ACTIVITY_ICON[t]]()}</span>`)
+    .map(t => {
+      const done = doneTypes.has(t);
+      const label = done ? ACTIVITY_LABEL[t] : ACTIVITY_LABEL_PENDING[t];
+      const mod = done ? "activity-badge--done" : "activity-badge--pending";
+      return `<span class="activity-badge ${mod}" title="${label}" aria-label="${label}">${icon[ACTIVITY_ICON[t]]()}</span>`;
+    })
     .join("");
 }
 
@@ -3509,7 +3537,7 @@ function renderRouteComingSoon() {
         <div class="empty-state-title">${title}</div>
         <div class="empty-state-body">Page à construire. Cette section sera implémentée après l'étape 2 (Leads) et l'étape 3 (tiroir).</div>
       </div>
-      <div class="empty-state-chip">v0.10.1</div>
+      <div class="empty-state-chip">v0.10.2</div>
     </div>
   `;
 }
