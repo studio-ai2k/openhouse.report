@@ -1,39 +1,41 @@
 <!doctype html>
 <!--
-  Open House Prospects — v0.10.2
-  Polish batch · three locked §10b items resolved
+  Open House Prospects — v0.10.3
+  §10b toggle redesign — V11 split-card replaces the pill toggle
 
-  v0.10.2 is a small polish cycle on top of v0.10.1. Three locked
-  §10b items shipped as one batch, no structural changes:
+  v0.10.3 ships the buyer/seller toggle redesign parked in §10b. The
+  four-turn mockup round (V4–V7 explored the space; V8–V10 explored
+  "one card, both modes inside"; V11 locked the direction). One
+  structural visual change, no data-model changes, no new helpers.
 
-    1. Activity badges (mobile card) — now always render all 4 action
-       types (call, email, whatsapp, note) instead of only the ones
-       present on the lead. Done badges use solid-border muted styling;
-       not-yet-done badges use dashed-border muted-er styling. Agents
-       see the complete touchpoint checklist per lead, not just what's
-       happened. Badges shrunk from 24px → 20px to reduce visual weight
-       further. ACTIVITY_LABEL_PENDING added alongside ACTIVITY_LABEL
-       for the dashed-badge title/aria-label text.
+    1. Mode identity moves out of the 4px type-accent top band (dropped)
+       and into TWO places that each carry it naturally:
+         a. The page H1 — "Prospects · Acquéreurs" / "Vendeurs", with
+            the mode word accented (--type-accent).
+         b. The mode card — a slim split card, one surface visually
+            separated into two halves by a 1px divider. Active half is
+            filled with --type-accent-bg; the icon badge picks up
+            --type-accent-strong. Icon + label per half; no count
+            (counts are right below in the KPI row).
+       Same --type-accent plumbing as before — KPI active-card + untouched
+       mobile-card left bar continue reading from the same custom
+       properties. Only the page-top chrome is reshaped.
 
-    2. Drawer header icon consistency — all 4 icon-prefixed rows
-       (campaign megaphone, source, phone, email) now read as a
-       coherent family. Campaign megaphone normalized to 14px (was
-       13px) with text-muted color. Source chip container (circle +
-       fill + border) stripped inside .drawer-chip-row via nested
-       selector — the mobile card keeps the full source-chip pill
-       treatment via the unscoped .source-chip rule.
+    2. Context chip + "Mis à jour" timestamp move to a dedicated
+       .leads-meta-row below the mode card. Chip is re-styled from a
+       type-accent pill to a muted outlined chip — the mode card now
+       carries the accent signal; the chip doesn't need to compete.
 
-    3. Sélectionner button active state lightened — previously filled
-       with near-black (var(--text-primary)) which out-weighted
-       everything else on the page in select mode. New ghost-style
-       treatment: surface-tint background + bold text + strong border.
-       Same pattern the Filter popover will adopt when it ships.
+    3. renderLeadsToggle → renderLeadsModeCard. New renderLeadsTitle
+       helper. renderLeadsContextChip kept (restyled via CSS).
 
-  No new helpers, no new icons, no new data model changes. Pure CSS
-  tweaks + one renderActivityBadges logic change.
+  Also includes:
+    - KPI today-count bug fix flagged in the v0.10.2 audit: the
+      "Leads aujourd'hui" card count now excludes lost leads, matching
+      the filterTab="today" filter behavior. One-line fix in
+      computeCrossCuttingCards.
 
-  Not in v0.10.2 (remaining §10b items, each needs more input):
-  - Buyer/Seller toggle redesign (direction unclear)
+  Not in v0.10.3 (remaining §10b items, each needs more input):
   - Agent vs Manager view (needs product discussion)
   - Sidebar header whitespace (needs device look)
   - Mobile card date-with-time (two implementation paths to pick)
@@ -1220,7 +1222,9 @@
      architecture notes in HANDOFF).
      ═══════════════════════════════════════════════════════════════ */
 
-  /* "Mis à jour il y a 2 min" meta in the toggle row, right-aligned. */
+  /* "Mis à jour il y a 2 min" meta — lives in .leads-meta-row now.
+     v0.10.3: kept as a utility class, margin-left:auto pushes it to
+     the right of the meta row. */
   .leads-updated-meta {
     margin-left: auto;
     font-size: 12px;
@@ -1988,83 +1992,136 @@
     --type-accent-strong: var(--accent-amber);  /* vibrant for the strip */
   }
 
-  /* 4px band at the very top. Visual commitment to "this surface is
-     type-aware" — picks up the vibrant accent, not the text accent. */
-  .leads .leads-topedge {
-    height: 4px;
-    background: var(--type-accent-strong);
-    border-radius: 2px;
-    margin-bottom: 14px;
-  }
+  /* v0.10.3 — §10b toggle redesign (V11).
+     Replaces: 4px top band, pill-shaped segmented toggle, and
+     context-chip meta row. New structure is three blocks stacked:
+       1. .leads-title       — H1 with active mode accented inline
+       2. .leads-mode-card   — slim split card, icon+label per half
+       3. .leads-meta-row    — context chip + "Mis à jour" timestamp
+     The --type-accent CSS custom properties (set on .leads root) are
+     unchanged — KPI active card + untouched-card left bar continue
+     reading from them. Only the page-top chrome changes. */
 
-  /* Toggle row: compact pill + context chip on the same line. */
-  .leads .leads-toggle-row {
+  /* Page title. Active mode is accented (picks up --type-accent)
+     and sits inline with a muted "Prospects ·" prefix. */
+  .leads .leads-title {
     display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+    letter-spacing: -0.015em;
+  }
+  .leads .leads-title-prefix {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    position: relative;
+    top: -2px;
+    letter-spacing: 0;
+  }
+  .leads .leads-title-mode {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--type-accent);
   }
 
-  /* Compact segmented pill toggle. */
-  .leads-toggle {
-    display: inline-flex;
-    background: var(--surface-tint);
-    border-radius: var(--r-pill);
-    padding: 3px;
-    gap: 2px;
+  /* Split-card toggle — slim, natural width, left-aligned.
+     Shorter than a KPI card (no count, just icon + label). Single
+     card visually, two halves separated by a 1px vertical divider.
+     Active half is filled with type-accent-bg; inactive half stays
+     white with muted content. */
+  .leads .leads-mode-card {
+    display: inline-grid;
+    grid-template-columns: 1fr auto 1fr;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    box-shadow: var(--shadow-xs);
+    margin-bottom: 10px;
   }
-  .leads-toggle-tab {
+  .leads .leads-mode-half {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 7px 14px;
+    gap: 10px;
+    padding: 10px 18px;
     background: transparent;
     border: 0;
-    border-radius: var(--r-pill);
     font-family: inherit;
     font-size: 13px;
     font-weight: 500;
     color: var(--text-secondary);
+    letter-spacing: -0.005em;
     cursor: pointer;
-    letter-spacing: -0.1px;
     white-space: nowrap;
     transition: background 120ms ease, color 120ms ease;
+    min-width: 160px;  /* prevent the halves from collapsing below icon+label */
   }
-  .leads-toggle-tab svg { width: 14px; height: 14px; opacity: 0.7; }
-  .leads-toggle-tab:hover:not([aria-selected="true"]) { color: var(--text-primary); }
-  .leads .leads-toggle-tab[aria-selected="true"] {
-    background: var(--panel);
-    color: var(--type-accent);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  .leads .leads-mode-half:hover:not([aria-selected="true"]) {
+    background: var(--surface-tint);
+    color: var(--text-primary);
   }
-  .leads .leads-toggle-tab[aria-selected="true"] svg {
-    opacity: 1;
+  .leads .leads-mode-half-ico {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--surface-tint);
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .leads .leads-mode-half-ico svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2;
+  }
+  .leads .leads-mode-half[aria-selected="true"] {
+    background: var(--type-accent-bg);
     color: var(--type-accent);
+    font-weight: 600;
+  }
+  .leads .leads-mode-half[aria-selected="true"] .leads-mode-half-ico {
+    background: var(--type-accent-strong);
+    color: var(--panel);
+  }
+  .leads-mode-divider {
+    width: 1px;
+    background: var(--border-subtle);
+    align-self: stretch;
   }
 
-  /* Context chip: pill echoing the active type's palette.
-     Sits next to the toggle; carries the raw type count in words. */
-  .leads-context-chip {
+  /* Meta row — context chip (type count in words) + "Mis à jour"
+     timestamp. Same content as the old toggle-row remnants, now on
+     its own line below the mode card. */
+  .leads .leads-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .leads .leads-context-chip {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 6px 12px;
-    border-radius: var(--r-pill);
+    padding: 4px 10px;
+    border-radius: var(--r-xs);
     font-size: 12px;
     font-weight: 500;
     letter-spacing: -0.1px;
     white-space: nowrap;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
   }
-  .leads-context-chip svg {
+  .leads .leads-context-chip svg {
     width: 12px;
     height: 12px;
     stroke-width: 2;
     flex-shrink: 0;
-  }
-  .leads .leads-context-chip {
-    background: var(--type-accent-bg);
-    color: var(--type-accent);
+    color: var(--text-muted);
   }
   /* ═══════════════════════════════════════════════════════════════
      RESPONSIVE (placed last so these override all base rules
@@ -2124,6 +2181,13 @@
       gap: 10px;
     }
     .leads-updated-meta { flex: 1 1 100%; margin-left: 0; }
+
+    /* v0.10.3 — V11 mode card goes full-width on mobile so both
+       halves get generous tap targets; title scales down. */
+    .leads .leads-mode-card { display: grid; width: 100%; }
+    .leads .leads-mode-half { min-width: 0; justify-content: center; }
+    .leads .leads-title-mode { font-size: 20px; }
+    .leads .leads-title-prefix { font-size: 12px; top: -1px; }
 
     /* Mobile bulk bar: wrap; drop count-text on tight widths via min-widths */
     .leads-bulk-bar {
@@ -2963,34 +3027,53 @@ function computeLeadsView() {
   };
 }
 
-/* Compact segmented pill toggle. Active option's text + icon recolor via
-   --type-accent (set on the .leads parent's mode-buyer / mode-seller class,
-   so the whole surface re-palettes in one place when the toggle flips). */
-function renderLeadsToggle() {
-  const opt = (typeKey, iconKey, label) => {
+/* v0.10.3 — Leads mode card (V11). One card visually split into two
+   halves by a 1px divider, icon + label per half. Active half picks
+   up --type-accent-bg + --type-accent-strong for the icon badge.
+   data-action is unchanged (set-lead-type) — handler is the same as
+   the old toggle-tab path. Slimmer than KPI cards: no count, counts
+   live in the KPI row below. */
+function renderLeadsModeCard() {
+  const half = (typeKey, iconKey, label) => {
     const active = state.leadType === typeKey;
     return `
-      <button class="leads-toggle-tab"
+      <button class="leads-mode-half"
               role="tab"
               aria-selected="${active}"
               data-action="set-lead-type"
               data-type="${typeKey}">
-        ${icon[iconKey]()}
+        <span class="leads-mode-half-ico">${icon[iconKey]()}</span>
         <span>${label}</span>
       </button>
     `;
   };
   return `
-    <div class="leads-toggle" role="tablist" aria-label="Type de lead">
-      ${opt("buyer",  "home", "Acquéreurs")}
-      ${opt("seller", "key",  "Vendeurs")}
+    <div class="leads-mode-card" role="tablist" aria-label="Type de lead">
+      ${half("buyer",  "home", "Acquéreurs")}
+      <div class="leads-mode-divider" aria-hidden="true"></div>
+      ${half("seller", "key",  "Vendeurs")}
     </div>
   `;
 }
 
-/* Context chip: shows raw active-type count in words. Lives next to the
-   toggle so the type-aware signal reinforces the toggle rather than
-   fighting it. Grammar handles singular/plural. */
+/* Page title. Active mode is accented and inline with the "Prospects ·"
+   prefix. Re-reads every render so mode flips re-color the word.
+   v0.10.3 — replaces the old 4px top band as the mode-identity signal
+   at the top of the page. */
+function renderLeadsTitle() {
+  const modeLabel = state.leadType === "buyer" ? "Acquéreurs" : "Vendeurs";
+  return `
+    <h1 class="leads-title">
+      <span class="leads-title-prefix">Prospects ·</span>
+      <span class="leads-title-mode">${modeLabel}</span>
+    </h1>
+  `;
+}
+
+/* Context chip: shows raw active-type count in words. Now lives in
+   .leads-meta-row below the mode card. Grammar handles singular/plural.
+   v0.10.3 — reshaped to match the muted outlined-chip style used
+   elsewhere (no type-accent fill; the mode card carries that signal). */
 function renderLeadsContextChip(typeKey, count) {
   const noun    = typeKey === "buyer" ? "acquéreur" : "vendeur";
   const plural  = count === 1 ? "" : "s";
@@ -3071,7 +3154,14 @@ const STAGE_HIDE_FROM_KPI = {
 // category from the pipeline stage cards.
 function computeCrossCuttingCards(leads, activeFilter) {
   const today = new Date().toISOString().slice(0, 10);  // "YYYY-MM-DD"
-  const todayCount = leads.filter(l => l.createdAt === today).length;
+  // v0.10.3: exclude lost leads to match filterTab="today" filter
+  // behavior. Without this, clicking the "Leads aujourd'hui" card
+  // could show fewer leads than the card count suggested if any of
+  // today's leads had been marked lost. Latent bug caught in v0.10.2
+  // audit (handover audit Q1).
+  const todayCount = leads.filter(l =>
+    l.createdAt === today && l.status !== "lost"
+  ).length;
   const unassignedCount = leads.filter(l =>
     l.assignedAgentId == null && l.status !== "lost"
   ).length;
@@ -3489,16 +3579,19 @@ function renderLeadsTable(view) {
 /* Leads page composition. Wrapped in a .leads root that carries a
    mode-buyer or mode-seller class — every type-accent CSS rule reads
    from custom properties set by that class, so the whole surface
-   re-palettes in one place when the user flips the toggle. */
+   re-palettes in one place when the user flips the mode.
+   v0.10.3: top chrome replaced (see renderLeadsTitle + renderLeadsModeCard).
+   No 4px top band anymore; mode identity carried by the accented
+   title word + the accented half of the mode card. */
 function renderLeadsContent() {
   const view      = computeLeadsView();
   const modeClass = `mode-${state.leadType}`;
   const typeCount = view.counts.typeCounts[state.leadType];
   return `
     <div class="leads ${modeClass}">
-      <div class="leads-topedge" aria-hidden="true"></div>
-      <div class="leads-toggle-row">
-        ${renderLeadsToggle()}
+      ${renderLeadsTitle()}
+      ${renderLeadsModeCard()}
+      <div class="leads-meta-row">
         ${renderLeadsContextChip(state.leadType, typeCount)}
         <span class="leads-updated-meta">Mis à jour il y a 2 min</span>
       </div>
@@ -3537,7 +3630,7 @@ function renderRouteComingSoon() {
         <div class="empty-state-title">${title}</div>
         <div class="empty-state-body">Page à construire. Cette section sera implémentée après l'étape 2 (Leads) et l'étape 3 (tiroir).</div>
       </div>
-      <div class="empty-state-chip">v0.10.2</div>
+      <div class="empty-state-chip">v0.10.3</div>
     </div>
   `;
 }
