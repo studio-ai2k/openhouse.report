@@ -1,1 +1,860 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050608">
+<title>Open House Prospects — Rapport d'avancement | studio AI2K</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#050608;--brd:#161c28;--brdh:#222a3a;--t1:#eaecf0;--t2:#8a92a4;--t3:#454d60;--acc:#00ffaa;--adim:rgba(0,255,170,.1);--aglow:rgba(0,255,170,.04);--amb:#ffb84d;--ambdim:rgba(255,184,77,.1);--red:#ed4245;--blue:#3878ff;--mono:'Azeret Mono',monospace;--sans:'Outfit',sans-serif}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);line-height:1.65;overflow:hidden;-webkit-font-smoothing:antialiased}
+@keyframes pageIn{to{opacity:1}}
+::selection{background:var(--acc);color:var(--bg)}
+canvas#P{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.W{position:relative;z-index:1}
+.C{max-width:1140px;margin:0 auto;padding:0 clamp(20px,5vw,64px)}
+section{padding:clamp(80px,12vh,140px) 0;position:relative}
+section:not(.hero)::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(0,255,170,.3),var(--brd) 40%,var(--brd));transform:scaleX(0);transform-origin:left;transition:transform 1.5s cubic-bezier(.16,1,.3,1) .3s}
+section:not(.hero):nth-of-type(even)::before{transform-origin:right;background:linear-gradient(270deg,rgba(0,255,170,.3),var(--brd) 40%,var(--brd))}
+section.vi::before{transform:scaleX(1)}
+@keyframes fi{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
+/* ═══ NAV ═══ */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;height:64px;display:flex;align-items:center;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);background:rgba(5,6,8,.35);border-bottom:1px solid var(--brd);transition:background .3s,border-color .3s}
+nav.scrolled{background:rgba(5,6,8,.5)}
+nav .C{display:flex;justify-content:center;align-items:center;position:relative}
+.nav-left,.nav-right{display:flex;gap:24px;list-style:none;position:absolute;transition:opacity .3s;opacity:0;pointer-events:none}
+nav.scrolled .nav-left,nav.scrolled .nav-right{opacity:1;pointer-events:auto}
+.nav-left{right:calc(50% + 80px)}.nav-right{left:calc(50% + 80px)}
+.nav-left a,.nav-right a{font-family:var(--mono);font-size:11px;color:var(--t2);text-decoration:none;text-transform:uppercase;letter-spacing:1px;transition:color .2s;position:relative}
+.nav-left a::after,.nav-right a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:var(--acc);transition:width .3s cubic-bezier(.16,1,.3,1)}
+.nav-left a:hover,.nav-right a:hover{color:var(--acc)}
+.nav-left a:hover::after,.nav-right a:hover::after{width:100%}
+.nav-anchor{width:1px;height:1px}
+#fLogo{position:fixed;z-index:250;pointer-events:none;font-family:var(--sans);font-weight:900;color:var(--t1);line-height:1;white-space:nowrap;will-change:transform;transform-origin:top left;letter-spacing:-2px}
+#fLogo span{color:var(--acc)}
+.nav-pill{display:none;position:fixed;bottom:28px;right:20px;z-index:601;background:none;border:none;padding:12px;cursor:pointer}
+.nav-pill i{display:block;width:20px;height:1.5px;background:var(--acc);margin:4px 0;transition:all .3s}
+.nav-pill.active i:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
+.nav-pill.active i:nth-child(2){opacity:0}
+.nav-pill.active i:nth-child(3){transform:rotate(-45deg) translate(4px,-4px)}
+.nl-mobile{position:fixed;top:64px;right:0;bottom:0;width:auto;padding:0 20px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:20px;z-index:600;list-style:none;pointer-events:none;background:rgba(5,6,8,0);backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);opacity:0;transition:opacity .3s,background .5s ease .4s,backdrop-filter .5s ease .4s,-webkit-backdrop-filter .5s ease .4s}
+.nl-mobile.op{opacity:1;pointer-events:auto}
+.nl-mobile.frosted{background:rgba(5,6,8,.05);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.nl-mobile li{opacity:0;transform:translateY(-60px) rotateX(90deg);filter:blur(12px);transition:opacity .6s ease,transform .7s cubic-bezier(.16,1,.3,1),filter .5s ease;pointer-events:none;transform-origin:top center;perspective:400px}
+.nl-mobile.op li{opacity:1;transform:translateY(0) rotateX(0deg);filter:blur(0);pointer-events:auto}
+.nl-mobile.op li:nth-child(1){transition-delay:0s}
+.nl-mobile.op li:nth-child(2){transition-delay:.06s}
+.nl-mobile.op li:nth-child(3){transition-delay:.12s}
+.nl-mobile.op li:nth-child(4){transition-delay:.18s}
+.nl-mobile.op li:nth-child(5){transition-delay:.24s}
+.nl-mobile.op li:nth-child(6){transition-delay:.30s}
+.nl-mobile a{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--t2);text-decoration:none;letter-spacing:-.2px;line-height:1.2;transition:color .2s;text-align:right}
+.nl-mobile a:hover{color:var(--acc)}
+.hero-ghost{font-family:var(--sans);font-size:clamp(40px,6.5vw,60px);font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:20px;visibility:hidden}
+
+/* ═══ TYPOGRAPHY ═══ */
+.slb{font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:4px;margin-bottom:20px}
+.st{font-size:clamp(30px,4.5vw,48px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;margin-bottom:20px}
+.st em{font-style:normal;color:var(--acc)}
+.ss{font-size:16px;color:var(--t2);max-width:560px;line-height:1.8}
+.si{font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--adim);border:1px solid rgba(0,255,170,.15);display:inline-block;padding:5px 14px;margin-bottom:24px;letter-spacing:1.5px;text-transform:uppercase}
+
+/* ═══ HERO ═══ */
+.hero{min-height:100vh;display:flex;align-items:center;position:relative;padding-top:60px}
+.hal{position:absolute;top:0;left:50%;width:1px;height:40vh;background:linear-gradient(180deg,var(--acc),transparent);opacity:.15}
+.hc{position:relative;z-index:2}
+.he{font-family:var(--mono);font-size:12px;color:var(--t3);letter-spacing:3px;text-transform:uppercase;margin-bottom:28px;opacity:0;animation:fi .8s ease forwards .3s}
+.hero-headline{font-size:clamp(30px,5vw,58px);font-weight:800;line-height:1.08;letter-spacing:-2px;margin-bottom:28px;opacity:0;animation:fi .8s ease forwards .4s}
+.hero-headline em{font-style:normal;color:var(--acc);position:relative}
+.hero-headline em::after{content:'';position:absolute;bottom:2px;left:0;right:0;height:3px;background:var(--acc);opacity:.3}
+.hs{font-size:clamp(16px,2vw,20px);color:var(--t2);max-width:540px;line-height:1.75;margin-bottom:48px;opacity:0;animation:fi .8s ease forwards .5s}
+.hero-meta{display:flex;gap:32px;opacity:0;animation:fi .8s ease forwards .7s}
+.hero-meta-item{display:flex;flex-direction:column;gap:4px}
+.hero-meta-item .val{font-family:var(--sans);font-size:28px;font-weight:800;color:var(--t1);letter-spacing:-1px}
+.hero-meta-item .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px}
+.hcta{display:flex;gap:24px;align-items:center;margin-top:32px;opacity:0;animation:fi .8s ease forwards .9s}
+.hcta a{font-family:var(--mono);font-size:12px;text-decoration:none;letter-spacing:.8px;text-transform:uppercase;transition:color .3s;color:var(--t3)}
+.hcta a:hover{color:var(--acc)}
+.sh{position:absolute;bottom:40px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;animation:fi 1s ease forwards 1.2s}
+.sh>span{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:2px;text-transform:uppercase}
+.shl{width:1px;height:40px;background:linear-gradient(180deg,var(--acc),transparent);animation:scrollPulse 2s ease infinite}
+@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.3)}}
+
+/* ═══ MODULE MAP ═══ */
+.mod-section{margin-bottom:40px}
+.mod-section-label{font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:3px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--brd)}
+.mod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mod-card{background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 22px;transition:background .6s,border-color .6s,box-shadow .6s;position:relative;overflow:hidden}
+.mod-card:hover{background:rgba(15,30,25,.65);border-color:rgba(0,255,170,.1);box-shadow:0 0 60px rgba(0,255,170,.04) inset}
+.mod-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.mod-card-name{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.mod-badge{font-family:var(--mono);font-size:9px;font-weight:600;padding:3px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;flex-shrink:0}
+.mod-badge.live{background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15)}
+.mod-badge.proto{background:var(--ambdim);color:var(--amb);border:1px solid rgba(255,184,77,.15)}
+.mod-badge.planned{background:rgba(255,255,255,.03);color:var(--t3);border:1px solid rgba(255,255,255,.06)}
+.mod-card-desc{font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:14px}
+.mod-card-link{font-family:var(--mono);font-size:11px;color:var(--acc);text-decoration:none;letter-spacing:.5px;transition:opacity .2s;display:inline-flex;align-items:center;gap:6px}
+.mod-card-link:hover{opacity:.7}
+.mod-card.is-planned{opacity:.5}
+.mod-card.is-planned:hover{opacity:.7}
+.mod-priority{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;background:rgba(237,66,69,.08);color:var(--red);border:1px solid rgba(237,66,69,.15);margin-left:6px}
+.mod-priority svg{width:12px;height:12px;flex-shrink:0}
+.mod-essential{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;background:rgba(56,120,255,.1);color:#3878ff;border:1px solid rgba(56,120,255,.2);margin-left:6px}
+.mod-essential svg{width:12px;height:12px;flex-shrink:0}
+.mod-fb-count{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12);margin-left:6px;display:inline-flex;align-items:center;gap:4px}
+.mod-fb-count svg{width:10px;height:10px;stroke:var(--acc);fill:none;stroke-width:2}
+.mod-future-label{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;background:rgba(255,255,255,.03);color:var(--t3);border:1px solid rgba(255,255,255,.06);margin-left:6px}
+
+/* ═══ ROADMAP PIPELINE ═══ */
+.pipeline{margin-top:64px;position:relative}
+.pipe-line{position:absolute;top:24px;left:4%;right:4%;height:1px;background:var(--brd)}
+.pipe-line-fill{position:absolute;top:24px;left:4%;right:4%;height:1px;background:var(--acc);transform:scaleX(0);transform-origin:left;transition:transform 1.2s cubic-bezier(.16,1,.3,1)}
+.pipeline.vis .pipe-line-fill{transform:scaleX(var(--pipe-fill,0))}
+.pipe-steps{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;position:relative;z-index:2}
+.pipe-step{text-align:center}
+.pipe-dot{width:48px;height:48px;border-radius:50%;border:2px solid var(--brd);background:rgba(5,6,8,.8);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t3);transition:all .4s}
+.pipe-step:hover .pipe-dot{border-color:var(--acc);color:var(--acc);box-shadow:0 0 20px var(--adim),0 0 40px var(--aglow)}
+.pipe-step.done .pipe-dot{border-color:var(--acc);color:var(--acc)}
+.pipe-step.active .pipe-dot{border-color:var(--amb);color:var(--amb);box-shadow:0 0 20px var(--ambdim)}
+.pipe-step h3{font-size:13px;font-weight:700;margin-bottom:4px;letter-spacing:-.2px}
+.pipe-step p{font-size:11px;color:var(--t2);line-height:1.5;max-width:140px;margin:0 auto}
+.pipe-step.done h3{color:var(--acc)}
+.pipe-step.active h3{color:var(--amb)}
+.fly-steps .pipe-step{opacity:0;transform:translateX(-50px);transition:opacity .5s ease,transform .5s cubic-bezier(.16,1,.3,1)}
+.fly-steps.vis .pipe-step{opacity:1;transform:translateX(0)}
+.fly-steps.vis .pipe-step:nth-child(1){transition-delay:.1s}
+.fly-steps.vis .pipe-step:nth-child(2){transition-delay:.18s}
+.fly-steps.vis .pipe-step:nth-child(3){transition-delay:.26s}
+.fly-steps.vis .pipe-step:nth-child(4){transition-delay:.34s}
+.fly-steps.vis .pipe-step:nth-child(5){transition-delay:.42s}
+.fly-steps.vis .pipe-step:nth-child(6){transition-delay:.50s}
+.fly-steps.vis .pipe-step:nth-child(7){transition-delay:.58s}
+.fly-steps.vis .pipe-step:nth-child(8){transition-delay:.66s}
+
+/* ═══ CHANGELOG ═══ */
+.changelog{margin-top:64px;display:flex;flex-direction:column;gap:0}
+.cl-entry{display:grid;grid-template-columns:140px 1fr;gap:24px;padding:20px 0;border-bottom:1px solid var(--brd);transition:background .3s}
+.cl-entry:first-child{border-top:1px solid var(--brd)}
+.cl-date{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.5px;padding-top:3px}
+.cl-content h4{font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-.2px}
+.cl-content p{font-size:14px;color:var(--t2);line-height:1.7}
+.cl-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px;margin-right:6px}
+.cl-tag.new{background:var(--adim);color:var(--acc);border:1px solid rgba(0,255,170,.12)}
+.cl-tag.update{background:rgba(88,101,242,.08);color:#7c85f2;border:1px solid rgba(88,101,242,.12)}
+.cl-tag.fix{background:rgba(237,66,69,.06);color:#f06467;border:1px solid rgba(237,66,69,.1)}
+
+/* ═══ FEEDBACK ═══ */
+.feedback-box{margin-top:64px;background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:clamp(40px,5vw,72px);position:relative;overflow:hidden;--px:50%;--py:50%}
+.feedback-box::before{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,170,.08),transparent 70%);left:var(--px);top:var(--py);transform:translate(-50%,-50%);opacity:0;transition:opacity .5s;pointer-events:none}
+.feedback-box:hover::before{opacity:1}
+.feedback-box:hover{border-color:rgba(0,255,170,.08)}
+.feedback-box h3{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-.8px;margin-bottom:8px}
+.feedback-box>p{font-size:14px;color:var(--t2);line-height:1.75;max-width:480px;margin-bottom:28px}
+.fb-form{display:flex;flex-direction:column;gap:12px;max-width:600px}
+.fb-input{font-family:var(--sans);font-size:14px;color:var(--t1);background:rgba(255,255,255,.04);border:1px solid var(--brd);border-radius:4px;padding:12px 16px;outline:none;transition:border-color .3s;resize:none}
+.fb-input:focus{border-color:rgba(0,255,170,.3)}
+.fb-input::placeholder{color:var(--t3)}
+.fb-row{display:flex;gap:12px}
+.fb-row .fb-input{flex:1}
+.btn{font-family:var(--mono);font-size:12px;padding:14px 28px;text-decoration:none;letter-spacing:.8px;text-transform:uppercase;transition:all .4s;cursor:pointer;display:inline-block;background:transparent;color:var(--t2);border:1px solid var(--brd);position:relative;overflow:hidden;z-index:1}
+.btn::before{content:'';position:absolute;top:0;left:0;width:0;height:100%;background:var(--acc);z-index:-1;transition:width .4s cubic-bezier(.16,1,.3,1)}
+.btn:hover{border-color:var(--acc);color:var(--bg)}
+.btn:hover::before{width:100%}
+.fb-success{display:none;font-family:var(--mono);font-size:12px;color:var(--acc);letter-spacing:.5px;margin-top:8px}
+
+/* ═══ FEEDBACK FEED ═══ */
+.fb-feed{margin-bottom:48px}
+.fb-feed-empty{font-family:var(--mono);font-size:12px;color:var(--t3);letter-spacing:.5px;padding:24px 0}
+.fb-feed-list{display:flex;flex-direction:column;gap:0}
+.fb-entry{display:grid;grid-template-columns:140px 1fr;gap:24px;padding:20px 0;border-bottom:1px solid var(--brd)}
+.fb-entry:first-child{border-top:1px solid var(--brd)}
+.fb-entry-meta{display:flex;flex-direction:column;gap:4px;padding-top:2px}
+.fb-entry-date{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.5px}
+.fb-entry-author{font-size:13px;font-weight:600;color:var(--t2)}
+.fb-entry-body{display:flex;flex-direction:column;gap:8px}
+.fb-entry-tags{display:flex;gap:6px;flex-wrap:wrap}
+.fb-entry-tag{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:.8px}
+.fb-entry-tag.mod{background:var(--adim);color:var(--acc);border:1px solid rgba(0,255,170,.12)}
+.fb-entry-tag.src{background:rgba(255,255,255,.03);color:var(--t3);border:1px solid rgba(255,255,255,.06)}
+.fb-entry-message{font-size:14px;color:var(--t2);line-height:1.7}
+.fb-feed-count{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.5px;margin-bottom:16px}
+
+/* ═══ MORE INDICATOR ═══ */
+.more-indicator{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:40px;cursor:pointer}
+.more-indicator span{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3)}
+
+/* ═══ LOGIN GATE ═══ */
+.pw-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10000;transition:opacity .4s}
+.pw-modal{position:relative;z-index:1;background:rgba(10,14,20,.3);border:1px solid rgba(0,255,170,.1);border-radius:20px;padding:32px 28px;width:320px;box-shadow:0 32px 80px rgba(0,0,0,.2);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);text-align:center}
+.pw-studio-logo{font-family:var(--sans);font-weight:900;font-size:14px;letter-spacing:-.5px;color:rgba(255,255,255,.3);margin-bottom:20px}
+.pw-studio-logo span{color:rgba(0,255,170,.4)}
+.pw-modal-icon{width:72px;height:72px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(0,255,170,.12),rgba(0,255,170,.04));border:1px solid rgba(0,255,170,.15)}
+.pw-modal-icon svg{width:32px;height:32px;stroke:var(--acc);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.pw-modal-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
+.pw-modal-sub{font-size:12px;color:var(--t2);margin-bottom:24px}
+.pw-field{width:100%;padding:13px 16px;background:linear-gradient(135deg,rgba(0,255,170,.06),rgba(0,255,170,.03));border:1px solid rgba(0,255,170,.15);border-radius:10px;margin-bottom:10px;cursor:text;position:relative;min-height:46px;display:flex;align-items:center;transition:border-color .2s,box-shadow .2s}
+.pw-field:hover{border-color:rgba(0,255,170,.4);box-shadow:0 0 16px rgba(0,255,170,.1)}
+.pw-dots{color:#fff;font-size:18px;letter-spacing:4px;line-height:1}
+.pw-placeholder{color:var(--t3);font-size:14px}
+.pw-error{font-size:11px;color:#ff4d4d;margin-bottom:8px;min-height:14px;text-align:left}
+.pw-btn{-webkit-appearance:none;appearance:none;width:100%;padding:14px;background:rgba(10,14,20,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#fff;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.5px;transition:border-color .2s,box-shadow .2s}
+.pw-btn:hover{border-color:rgba(0,255,170,.4);box-shadow:0 0 16px rgba(0,255,170,.1)}
+.pw-footer{margin-top:16px;font-size:.65em;color:rgba(255,255,255,.25)}
+.pw-footer a{color:rgba(255,255,255,.25);text-decoration:none;transition:color .2s}
+.pw-footer a:hover{color:var(--acc)}
+@keyframes pwShake{0%{transform:translateX(0)}15%{transform:translateX(-4px)}30%{transform:translateX(4px)}45%{transform:translateX(-3px)}60%{transform:translateX(3px)}75%{transform:translateX(-1px)}100%{transform:translateX(0)}}
+
+/* ═══ REVEALS ═══ */
+.rv{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.rv.vi{opacity:1;transform:translateY(0)}
+.rv-stagger>*{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}
+.rv-stagger.vi>*:nth-child(1){opacity:1;transform:translateY(0);transition-delay:.05s}
+.rv-stagger.vi>*:nth-child(2){opacity:1;transform:translateY(0);transition-delay:.15s}
+.rv-stagger.vi>*:nth-child(3){opacity:1;transform:translateY(0);transition-delay:.25s}
+.rv-stagger.vi>*:nth-child(4){opacity:1;transform:translateY(0);transition-delay:.35s}
+
+/* ═══ FOOTER ═══ */
+footer{border-top:1px solid var(--brd);padding:36px 0}
+.fr{display:flex;justify-content:space-between;align-items:center}
+.fr p{font-family:var(--mono);font-size:10px;color:var(--t3);letter-spacing:.5px}
+.fr a{font-family:var(--mono);font-size:10px;color:var(--t3);letter-spacing:.5px;text-decoration:none;transition:color .2s}
+.fr a:hover{color:var(--acc)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:960px){
+  section{padding:clamp(56px,10vh,100px) 0}
+  nav{background:rgba(5,6,8,.95)}
+  .mod-grid{grid-template-columns:1fr 1fr}
+  .pipe-steps{grid-template-columns:repeat(4,1fr);gap:16px}.pipe-line,.pipe-line-fill{display:none}
+  .cl-entry{grid-template-columns:1fr}.cl-date{padding-bottom:4px}
+  .hero-meta{flex-wrap:wrap;gap:24px}
+  .nav-left,.nav-right{display:none}.nav-pill{display:block}
+  .st{font-size:clamp(26px,6vw,40px)}
+}
+@media(max-width:680px){
+  section{padding:clamp(48px,8vh,80px) 0}
+  .mod-grid{grid-template-columns:1fr}
+  .pipe-steps{grid-template-columns:repeat(3,1fr)}.pipe-dot{width:40px;height:40px;font-size:9px}.pipe-step h3{font-size:12px}.pipe-step p{font-size:10px}
+  .hero-ghost{font-size:clamp(34px,10vw,48px)}.hero-headline{font-size:clamp(26px,7vw,40px)}.hs{font-size:15px}
+  .feedback-box{padding:28px 22px}
+  .fb-entry{grid-template-columns:1fr}.fb-entry-meta{flex-direction:row;gap:12px;padding-bottom:4px}
+  .fb-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div class="pw-overlay" id="pwGate">
+  <canvas id="pwParticles" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+  <div class="pw-modal" id="pwModal">
+    <div class="pw-studio-logo">studio AI<span>2K</span></div>
+    <div class="pw-modal-icon">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div class="pw-modal-title">Open House</div>
+    <div class="pw-modal-sub">Lead Dashboard · Rapport d'avancement</div>
+    <div class="pw-field" id="pwField" onclick="document.getElementById('pwInput').focus()">
+      <input type="password" id="pwInput" style="position:absolute;opacity:0;width:1px;height:1px" onkeydown="if(event.key==='Enter')pwCheck()" oninput="pwDots(this.value)">
+      <span class="pw-placeholder" id="pwDisplay">Mot de passe</span>
+    </div>
+    <div class="pw-error" id="pwError"></div>
+    <button class="pw-btn" onclick="pwCheck()">Accéder →</button>
+    <div class="pw-footer">Accès réservé · <a href="https://ai2k.dev">ai2k.dev</a></div>
+  </div>
+</div>
+
+<canvas id="P"></canvas>
+<div id="fLogo">studio AI<span>2K</span></div>
+<div class="W">
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="C">
+    <ul class="nav-left"><li><a href="#progress">Progress</a></li><li><a href="#modules">Features</a></li><li><a href="#roadmap">Roadmap</a></li></ul>
+    <div class="nav-anchor" id="navAnchor"></div>
+    <ul class="nav-right"><li><a href="#decisions">Décisions</a></li><li><a href="#feedback">Retours</a></li><li><a href="#changelog">Changelog</a></li></ul>
+  </div>
+</nav>
+<button class="nav-pill" id="navPill"><i></i><i></i><i></i></button>
+<ul class="nl-mobile" id="nLM"><li><a href="#progress" data-text="Progress">Progress</a></li><li><a href="#modules" data-text="Features">Features</a></li><li><a href="#roadmap" data-text="Roadmap">Roadmap</a></li><li><a href="#decisions" data-text="Décisions">Décisions</a></li><li><a href="#feedback" data-text="Retours">Retours</a></li><li><a href="#changelog" data-text="Changelog">Changelog</a></li></ul>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hal"></div>
+  <div class="C"><div class="hc">
+    <div class="hero-ghost" id="hGhost">studio AI2K</div>
+    <p class="he">Rapport d'avancement — Avril 2026</p>
+    <h2 class="hero-headline">Open House<br>Prospects — suivi <em>projet.</em></h2>
+    <p class="hs">Outil de gestion et distribution de leads immobiliers — acquéreurs et vendeurs dans une seule interface. Couche opérationnelle entre Meta et les équipes commerciales — centralisation, attribution, qualification, actions immédiates.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><span class="val" id="kpiFeatures">2</span><span class="lbl">Types de leads</span></div>
+      <div class="hero-meta-item"><span class="val" style="color:var(--acc)" id="kpiPhase">2</span><span class="lbl">Phase actuelle</span></div>
+      <div class="hero-meta-item"><span class="val" style="color:var(--t3)" id="kpiPlanned">HTML</span><span class="lbl">Stack frontend</span></div>
+    </div>
+    <div class="hcta"><a href="#roadmap">Roadmap →</a><a href="#feedback">Retours →</a></div>
+  </div></div>
+  <div class="sh"><span>Scroll</span><div class="shl"></div></div>
+</section>
+
+<!-- PROGRESS -->
+<section id="progress"><div class="C">
+  <div class="rv">
+    <p class="slb">Progress</p>
+    <h2 class="st">Où en <em>est-on.</em></h2>
+  </div>
+
+  <div style="margin-top:64px;display:flex;flex-direction:column;gap:16px">
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
+      <div class="si">Origines</div>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Des leads bien générés, mal exploités</h3>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75">Open House génère des leads qualifiés pour ses agences immobilières partenaires via des campagnes Meta (Instagram, Facebook). Aujourd'hui, ces leads arrivent dans le Meta Lead Center — mais leur distribution aux agents est manuelle : export, envoi par WhatsApp ou email, suivi sur tableur. Les leads sont contactés trop tard, parfois oubliés, et le retour sur la qualité reste informel. Open House Prospects résout ce problème en créant une couche opérationnelle entre Meta et les équipes terrain — récupération automatique, attribution claire, qualification structurée, actions immédiates.</p>
+    </div>
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
+      <div class="si" style="color:var(--amb);background:var(--ambdim);border-color:rgba(255,184,77,.15)">Phase actuelle</div>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Design HTML en cours — page Leads avancée, 5 pages à designer</h3>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Open House Prospects est en ligne avec Magrey & Sons comme première agence intégrée. L'application est un fichier HTML unique (~3 900 lignes) déployé sur GitHub Pages. La page Leads avance : les cartes KPI ont été recentrées suite à un retour client — les étapes peu utilisées ont été remplacées par « Leads aujourd'hui » et « Non assignés », plus utiles au quotidien. Le header du drawer est finalisé (badge vérifié, score, campagne, type, actions contact). Le mobile affiche les leads en cards sous 600px avec badges d'activité et bande d'accent pour les leads non traités.</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Mais le gros du travail est devant : le contenu des 4 onglets du drawer (le workflow principal de l'agent), le popover de filtres, les actions groupées, le formulaire d'ajout. Et ensuite — Tableau de bord, Agents, Campagnes, Database, Paramètres. Chaque page doit être designée de zéro.</p>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75">Prochaine étape immédiate : les onglets du drawer — Infos (formulaire éditable), Qualification (pipeline + agent), Activité (timeline), Notes.</p>
+    </div>
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
+      <div class="si" style="color:var(--t2);background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)">Infrastructure cible</div>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">HTML → PostgreSQL → Hetzner — simple et efficace</h3>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:16px">Le dashboard est conçu pour gérer plusieurs agences simultanément. Chaque agence dispose de son propre espace — leads isolés, agents dédiés, données séparées. Open House supervise l'ensemble depuis une vue super admin. L'intégration Meta fait le lien entre les campagnes et le dashboard. En interne d'abord, intégré aux offres Open House. Puis, à terme, un produit SaaS autonome.</p>
+
+      <div style="font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">Stack technique</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Frontend</span><span style="font-size:12px;color:var(--t3)">HTML / CSS / JS — pas de framework</span></div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Données mock</span><span style="font-size:12px;color:var(--t3)">Google Sheets (phase design)</span></div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Base de données</span><span style="font-size:12px;color:var(--t3)">PostgreSQL — directement sur le VPS</span></div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Serveur</span><span style="font-size:12px;color:var(--t3)">Express.js sur Hetzner CPX22</span></div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Auth</span><span style="font-size:12px;color:var(--t3)">Sessions Express + PostgreSQL</span></div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:600;color:var(--t1)">Coût estimé</span><span style="font-size:12px;color:var(--t3)">~8 €/mois au lancement</span></div>
+      </div>
+    </div>
+
+    <!-- GO-TO-MARKET -->
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
+      <div class="si" style="color:var(--acc)">Go-to-market</div>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px">Lancement doux — étape par étape</h3>
+      <p style="font-size:15px;color:var(--t2);line-height:1.75;margin-bottom:20px">L'outil ne sera pas lancé en masse. La stratégie est progressive — construire la confiance avant de scaler.</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--acc);min-width:20px">01</span><span style="font-size:14px;color:var(--t2)">Email ciblé aux agences partenaires existantes</span></div>
+        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--acc);min-width:20px">02</span><span style="font-size:14px;color:var(--t2)">Landing page dédiée — présentation du produit, bénéfices</span></div>
+        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--acc);min-width:20px">03</span><span style="font-size:14px;color:var(--t2)">Appel découverte — démo personnalisée, questions, feedback</span></div>
+        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:var(--mono);font-size:11px;color:var(--acc);min-width:20px">04</span><span style="font-size:14px;color:var(--t2)">Onboarding accompagné — configuration, import, formation</span></div>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE DIAGRAM -->
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:32px 28px">
+      <div class="si">Architecture</div>
+      <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Le flux de données — de Meta au terrain</h3>
+      <p style="font-size:14px;color:var(--t2);line-height:1.75;margin-bottom:28px">Les leads générés par les campagnes Meta arrivent automatiquement dans le dashboard. Les agents qualifient les leads — et cette qualification remonte vers Meta pour améliorer le ciblage des futures campagnes.</p>
+
+      <svg width="100%" viewBox="0 0 680 440" style="max-width:680px">
+        <defs>
+          <marker id="af1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#00ffaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+          <marker id="af2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#ffb84d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        </defs>
+        <rect x="200" y="16" width="280" height="48" rx="8" fill="rgba(30,58,95,.6)" stroke="#3b82f6" stroke-width="0.5"/>
+        <text x="340" y="36" text-anchor="middle" fill="#93c5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Campagnes Meta</text>
+        <text x="340" y="52" text-anchor="middle" fill="#6b9bd2" font-size="11" font-family="Outfit,sans-serif">Instagram / Facebook ads</text>
+        <line x1="340" y1="64" x2="340" y2="88" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
+        <rect x="190" y="88" width="300" height="48" rx="8" fill="rgba(30,58,95,.6)" stroke="#3b82f6" stroke-width="0.5"/>
+        <text x="340" y="108" text-anchor="middle" fill="#93c5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Meta Lead Center</text>
+        <text x="340" y="124" text-anchor="middle" fill="#6b9bd2" font-size="11" font-family="Outfit,sans-serif">Source de vérité — leads stockés</text>
+        <line x1="340" y1="136" x2="340" y2="160" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
+        <text x="355" y="154" fill="#454d60" font-size="10" font-family="Azeret Mono,monospace">API</text>
+        <rect x="170" y="160" width="340" height="48" rx="8" fill="rgba(45,31,78,.5)" stroke="#8b5cf6" stroke-width="0.5"/>
+        <text x="340" y="180" text-anchor="middle" fill="#c4b5fd" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Hetzner CPX22</text>
+        <text x="340" y="196" text-anchor="middle" fill="#9886cc" font-size="11" font-family="Outfit,sans-serif">Express.js + PostgreSQL</text>
+        <line x1="340" y1="208" x2="340" y2="232" stroke="#00ffaa" stroke-width="1.5" marker-end="url(#af1)"/>
+        <rect x="50" y="232" width="580" height="180" rx="12" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
+        <text x="340" y="258" text-anchor="middle" fill="#6ee7b7" font-size="14" font-weight="600" font-family="Outfit,sans-serif">Open House Prospects Dashboard</text>
+        <rect x="80" y="276" width="150" height="48" rx="8" fill="rgba(26,29,36,.8)" stroke="#374151" stroke-width="0.5"/>
+        <text x="155" y="296" text-anchor="middle" fill="#d1d5db" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Super Admin</text>
+        <text x="155" y="312" text-anchor="middle" fill="#6b7280" font-size="11" font-family="Outfit,sans-serif">Open House</text>
+        <rect x="265" y="276" width="150" height="48" rx="8" fill="rgba(42,31,10,.7)" stroke="#d97706" stroke-width="0.5"/>
+        <text x="340" y="296" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Admin Agence</text>
+        <text x="340" y="312" text-anchor="middle" fill="#a38321" font-size="11" font-family="Outfit,sans-serif">Assigner + gérer</text>
+        <rect x="450" y="276" width="150" height="48" rx="8" fill="rgba(42,21,16,.6)" stroke="#dc2626" stroke-width="0.5" opacity="0.8"/>
+        <text x="525" y="296" text-anchor="middle" fill="#fca5a5" font-size="13" font-weight="600" font-family="Outfit,sans-serif">Agent</text>
+        <text x="525" y="312" text-anchor="middle" fill="#b07070" font-size="11" font-family="Outfit,sans-serif">Qualifier + agir</text>
+        <rect x="100" y="348" width="90" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
+        <text x="145" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Voir leads</text>
+        <rect x="205" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
+        <text x="245" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Assigner</text>
+        <rect x="300" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
+        <text x="340" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Qualifier</text>
+        <rect x="395" y="348" width="80" height="28" rx="6" fill="rgba(15,41,34,.5)" stroke="#00ffaa" stroke-width="0.5"/>
+        <text x="435" y="366" text-anchor="middle" fill="#6ee7b7" font-size="10" font-family="Outfit,sans-serif">Appeler</text>
+        <rect x="490" y="348" width="80" height="28" rx="6" fill="rgba(42,31,10,.5)" stroke="#d97706" stroke-width="0.5"/>
+        <text x="530" y="366" text-anchor="middle" fill="#fbbf24" font-size="10" font-family="Outfit,sans-serif">CAPI ↑</text>
+        <path d="M590 300 L640 300 L640 184 L512 184" fill="none" stroke="#ffb84d" stroke-width="1.5" marker-end="url(#af2)"/>
+        <text x="648" y="240" fill="#ffb84d" font-size="10" font-family="Azeret Mono,monospace">CAPI</text>
+        <text x="648" y="254" fill="#a38321" font-size="9" font-family="Azeret Mono,monospace">Feedback</text>
+      </svg>
+
+      <div style="margin-top:28px;font-family:var(--mono);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">Qualification → signal Meta</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-width:560px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--amb)">En cours</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Contact</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--acc)">Qualifié</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Lead</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:var(--acc)">Converti</span><span style="font-size:11px;color:var(--t3)">→</span><span style="font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(0,255,170,.08);color:var(--acc);border:1px solid rgba(0,255,170,.12)">Purchase</span></div>
+      </div>
+      <p style="font-size:12px;color:var(--t3);margin-top:12px;line-height:1.6">Chaque qualification envoyée par un agent améliore le ciblage des futures campagnes. L'algorithme Meta apprend quels profils convertissent réellement.</p>
+    </div>
+
+  </div>
+</div></section>
+
+<!-- MODULES -->
+<section id="modules"><div class="C">
+  <div class="rv">
+    <p class="slb">Features</p>
+    <h2 class="st">Un outil, deux types de <em>leads.</em></h2>
+    <p class="ss">Acquéreurs et vendeurs dans la même interface — un toggle filtre la vue. Mêmes actions, mêmes pipelines personnalisables, champs différents selon le type.</p>
+  </div>
+  <div id="moduleMap" style="margin-top:64px"></div>
+</div></section>
+
+<!-- ROADMAP -->
+<section id="roadmap"><div class="C">
+  <div class="rv">
+    <p class="slb">Roadmap</p>
+    <h2 class="st">Le chemin vers le <em>produit.</em></h2>
+  </div>
+  <div class="pipeline fly-steps" style="--pipe-fill:0.16">
+    <div class="pipe-line"></div><div class="pipe-line-fill"></div>
+    <div class="pipe-steps">
+      <div class="pipe-step done"><div class="pipe-dot">100%</div><h3>Vision produit</h3><p>Brief complet — Acquéreurs + Vendeurs. Rôles, data flow, intégration Meta validée.</p></div>
+      <div class="pipe-step active"><div class="pipe-dot">30%</div><h3>Design HTML</h3><p>Page Leads avancée. Drawer, tri, sélection, mobile cards. 5 pages restent à designer.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Intégration serveur</h3><p>Push HTML sur Hetzner CPX22. Express.js + PostgreSQL remplace Google Sheets.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Intégration Meta</h3><p>Webhooks Lead Ads, import historique, CAPI feedback, mapping champs par agence.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Auth & multi-tenancy</h3><p>Sessions Express + PostgreSQL. Rôles (Super Admin / Admin / Agent), isolation par agence.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Agence pilote</h3><p>Première agence réelle. Leads réels, retours terrain, ajustements.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>Lancement</h3><p>Déploiement agences Open House. Onboarding, formation, support.</p></div>
+      <div class="pipe-step"><div class="pipe-dot">0%</div><h3>SaaS</h3><p>Multi-tenant, onboarding self-serve, billing, commercialisation.</p></div>
+    </div>
+  </div>
+  <div style="margin-top:48px;padding:32px 28px;background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--acc);background:var(--adim);border:1px solid rgba(0,255,170,.15);padding:5px 14px;letter-spacing:1.5px;text-transform:uppercase">Prochaine livraison</span>
+    </div>
+    <h3 style="font-size:18px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px">Contenu du drawer — Infos, Qualification, Activité, Notes</h3>
+    <p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:560px">La structure du drawer est en place. Le prochain chantier : remplir les 4 onglets avec du vrai contenu — formulaire de contact éditable, qualification par l'agent (pipeline + score), timeline d'activité, et notes horodatées. C'est le workflow principal de l'agent au quotidien.</p>
+  </div>
+</div></section>
+
+<!-- DÉCISIONS -->
+<section id="decisions"><div class="C">
+  <div class="rv">
+    <p class="slb">Arbitrages</p>
+    <h2 class="st">Chaque idée examinée, chaque choix <em>justifié.</em></h2>
+    <p class="ss">Le brief original a été passé au crible. Voici les arbitrages clés — ce qu'on construit maintenant, ce qu'on reporte, et pourquoi.</p>
+  </div>
+
+  <div style="margin-top:48px;display:flex;flex-direction:column;gap:12px">
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Deux modules séparés → Un outil, deux types</span>
+        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15);text-transform:uppercase;letter-spacing:1px">Simplifié</span>
+      </div>
+      <p style="font-size:13px;color:var(--t2);line-height:1.7">Un toggle Acquéreurs/Vendeurs filtre la vue. Mêmes actions, même interface — seuls les champs et les étapes de pipeline changent. Construire deux modules séparés doublerait le code sans bénéfice pour l'utilisateur.</p>
+    </div>
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Scoring = qualification → Scoring ≠ qualification</span>
+        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15);text-transform:uppercase;letter-spacing:1px">Clarifié</span>
+      </div>
+      <p style="font-size:13px;color:var(--t2);line-height:1.7">Le scoring (🔥🟡❄️) est un indicateur de priorité calculé automatiquement — « qui appeler en premier ce matin. » La qualification, c'est le pipeline : l'agent parle au lead et le fait avancer. C'est le pipeline qui remonte vers Meta via CAPI pour améliorer le ciblage, pas le score.</p>
+    </div>
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Pipelines personnalisables par agence</span>
+        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15);text-transform:uppercase;letter-spacing:1px">Confirmé</span>
+      </div>
+      <p style="font-size:13px;color:var(--t2);line-height:1.7">Chaque agence travaille différemment. Les étapes de pipeline sont stockées en JSON par agence — toute l'interface lit depuis ce tableau. Coûte presque rien à construire dès le départ, douloureux à ajouter après. C'est un des avantages clés face au Centre de Prospects Meta.</p>
+    </div>
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Templates messages avec champs dynamiques</span>
+        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:rgba(0,255,170,.1);color:var(--acc);border:1px solid rgba(0,255,170,.15);text-transform:uppercase;letter-spacing:1px">Confirmé</span>
+      </div>
+      <p style="font-size:13px;color:var(--t2);line-height:1.7">Certaines agences envoient un email type comme premier contact. Templates avec {nom}, {budget}, {secteur} — gain de temps, premier point de contact standardisé. Besoin réel confirmé par le workflow terrain.</p>
+    </div>
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Distribution email complète → Notification simple</span>
+        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:var(--ambdim);color:var(--amb);border:1px solid rgba(255,184,77,.15);text-transform:uppercase;letter-spacing:1px">Reporté</span>
+      </div>
+      <p style="font-size:13px;color:var(--t2);line-height:1.7">Un système complet de gestion par email représente un chantier important pour des agences qui ne veulent pas de l'outil. Un toggle « notification email » par agence couvre le besoin. Si des clients payants demandent explicitement un mode email-only, il sera ajouté.</p>
+    </div>
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">WhatsApp Business API → Liens wa.me</span>
+        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:var(--ambdim);color:var(--amb);border:1px solid rgba(255,184,77,.15);text-transform:uppercase;letter-spacing:1px">Reporté</span>
+      </div>
+      <p style="font-size:13px;color:var(--t2);line-height:1.7">L'API WhatsApp Business nécessite une vérification Meta, coûte par message, et est complexe à intégrer. Les liens wa.me donnent un accès WhatsApp en un tap, zéro configuration. L'API Business sera ajoutée quand l'automatisation WhatsApp deviendra un vrai besoin.</p>
+    </div>
+
+    <div class="rv" style="background:rgba(25,30,40,.6);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:24px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.2px">Dashboard admin Open House</span>
+        <span style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:4px;background:var(--ambdim);color:var(--amb);border:1px solid rgba(255,184,77,.15);text-transform:uppercase;letter-spacing:1px">Phase 4</span>
+      </div>
+      <p style="font-size:13px;color:var(--t2);line-height:1.7">Pour 2-3 agences, se connecter à chaque vue suffit. Le multi-tenancy est propre dès le départ (agency_id partout), donc ajouter une couche admin plus tard = nouvelle vue sur les données existantes, pas une restructuration.</p>
+    </div>
+
+  </div>
+</div></section>
+
+<!-- FEEDBACK -->
+<section id="feedback"><div class="C">
+  <div class="rv">
+    <p class="slb">Feedback</p>
+    <h2 class="st">Vos <em>retours.</em></h2>
+  </div>
+
+  <div class="feedback-box rv" id="fbBox" style="text-align:center">
+    <div style="margin-bottom:20px">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h3>Les retours s'activent après la première livraison</h3>
+    <p style="max-width:440px;margin:0 auto">Le formulaire de feedback sera disponible dès que le design HTML sera finalisé et consultable ici. En attendant, le projet avance — la fondation se construit.</p>
+  </div>
+</div></section>
+
+<!-- CHANGELOG -->
+<section id="changelog"><div class="C">
+  <div class="rv">
+    <p class="slb">Changelog</p>
+    <h2 class="st">Dernières <em>livraisons.</em></h2>
+  </div>
+  <div class="changelog rv">
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 14 — 20 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>v0.10.0–0.10.1 — Mobile cards + drawer header finalisé</h4>
+        <p>Sous 600px, le tableau se transforme en cards mobile avec badges d'activité (appel, email, WhatsApp, note) et bande d'accent pour les leads non traités. Modèle de données activité ajouté à chaque lead. Header du drawer finalisé : badge téléphone vérifié (vert ✓ / ambre ⚠), chip score, nom de campagne, chip type acquéreur/vendeur, email en copie au clic. ~3 900 lignes.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 14 — 20 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag update">Update</span>v0.9.1–0.9.2 — KPIs recentrées + polish iOS</h4>
+        <p>Suite à un retour client : les étapes peu utilisées (offre faite, converti) retirées des cartes KPI, remplacées par « Leads aujourd'hui » et « Non assignés » — métriques actionnables. Icônes source en SVG dans le drawer. Safe-area iOS pour PWA. Masquage progressif des KPIs par priorité sur écrans étroits. Indicateur « N masqués » dans la barre d'actions groupées.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 14 — 20 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>v0.9.0 — Application en ligne, page Leads fonctionnelle</h4>
+        <p>Application accessible en ligne. Magrey & Sons intégrée. Page Leads : 6 cartes KPI par étape, tableau 6 colonnes avec tri cliquable, mode sélection avec barre d'actions groupées, recherche. Toggle Acquéreurs/Vendeurs. ~3 200 lignes HTML/CSS/JS en un seul fichier.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- OLDER — hidden by default -->
+  <div class="changelog" id="clOlder" style="display:none">
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 14 — 20 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>Shell complet — sidebar, topbar, drawer, responsive</h4>
+        <p>Sidebar 260px avec logo agence, sélecteur ville/agence, navigation, dark mode, feedback card. Topbar sticky avec ombre au scroll, bouton +, cloche, menu utilisateur. Drawer 480px (plein écran mobile). Responsive tablette et mobile. Chaîne ESC complète.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 14 — 20 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag update">Update</span>Architecture verrouillée — prête pour la migration</h4>
+        <p>Un seul objet d'état, fonctions de rendu composant par composant (migration React directe si nécessaire), délégation d'événements via data-action, tokens CSS en :root. Documentation : HANDOFF.md, DESIGN_SPEC.md (21 décisions verrouillées), DESIGN_PROTOCOL.md.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- OLDER — hidden by default -->
+  <div class="changelog" id="clOlder" style="display:none">
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 14 — 20 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>Spec finalisée — arbitrages verrouillés</h4>
+        <p>Brief passé au crible : « deux modules » → toggle de type. Scoring séparé de la qualification. Pipelines personnalisables. Templates messages. WhatsApp Business reporté. Admin Open House Phase 4.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 14 — 20 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag update">Update</span>Nom, positionnement, stack</h4>
+        <p>Open House Prospects — offert gratuitement aux clients, vente standalone après validation. Stack : HTML pur + Express.js + PostgreSQL sur Hetzner CPX22.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 7 — 13 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>Prototype initial + intégration Meta verrouillée</h4>
+        <p>Shell React, page Leads, carte Paris interactive SVG, spec Meta (webhooks + CAPI), migration Vercel → Hetzner.</p>
+      </div>
+    </div>
+
+    <div class="cl-entry">
+      <div class="cl-date">Semaine 31 mars — 6 avr</div>
+      <div class="cl-content">
+        <h4><span class="cl-tag new">New</span>Vision produit & sélection stack</h4>
+        <p>Brief initial, 3 rôles, data flow, stack technique, multi-tenancy dès le départ.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MORE BUTTON -->
+  <div class="more-indicator rv" id="clMoreBtn" onclick="toggleOlderChangelog()">
+    <span id="clMoreTxt">More</span>
+    <div class="shl" id="clMoreLine"></div>
+  </div>
+
+</div></section>
+
+<!-- FOOTER -->
+<footer><div class="C"><div class="fr">
+  <p>&copy; 2026 studio AI2K. All rights reserved.</p>
+  <p>Dernière mise à jour : Semaine 14 — 20 avr</p>
+  <a href="https://ai2k.dev">ai2k.dev</a>
+</div></div></footer>
+
+</div>
+
+<script>
+/* ═══ MODULE DATA ═══ */
+var MODULES = [
+  { section: "Gestion des leads", items: [
+    { name: "Liste & tableau", status: "proto", desc: "6 colonnes triables (Nom, Budget, Zone, Score, Agent, Date). Tri par en-tête cliquable. Recherche. Cards mobile sous 600px avec badges d'activité." },
+    { name: "Fiche lead (drawer)", status: "proto", desc: "Panneau 480px. Header finalisé : badge vérifié, score, campagne, type, actions contact (tel: + copie email). 4 onglets prêts — contenu en cours." },
+    { name: "Cartes KPI", status: "proto", desc: "« Leads aujourd'hui » + « Non assignés » + étapes pipeline. Recentrées suite à un retour client — étapes peu utilisées retirées au profit de métriques actionnables." },
+    { name: "Mode sélection", status: "proto", desc: "Checkbox par ligne, sélection persistante entre filtres/types, barre d'actions groupées (assigner, statut, archiver, supprimer)." },
+    { name: "Toggle Acquéreurs/Vendeurs", status: "proto", desc: "Pill compacte avec bande de couleur 4px. Recolore l'interface entière." },
+    { name: "Vue kanban", status: "planned", desc: "Pipeline en colonnes — glisser-déposer entre étapes." },
+    { name: "Pipeline personnalisable", status: "planned", desc: "Chaque agence crée ses propres étapes. JSON dynamique dans toute l'interface." },
+    { name: "Scoring automatique", status: "planned", desc: "🔥 Hot / 🟡 Warm / ❄️ Cold — calculé depuis : téléphone vérifié, budget, horizon, préférence de contact." },
+    { name: "Actions directes", status: "planned", desc: "Click-to-call, lien wa.me (WhatsApp), mailto — une action = un tap." },
+    { name: "Templates messages", status: "planned", desc: "Templates avec champs dynamiques ({nom}, {budget}, {secteur})." },
+  ]},
+  { section: "Distribution & assignation", items: [
+    { name: "Assignation manuelle", status: "proto", desc: "Le manager attribue un lead à un agent via le drawer. L'agent ne voit que ses leads." },
+    { name: "Actions groupées", status: "proto", desc: "Barre d'actions en bas du tableau — assigner, changer statut, archiver, supprimer. Popovers en cours." },
+    { name: "Règles d'assignation", status: "planned", desc: "Round-robin, par zone, par score, par charge — configurable par agence." },
+    { name: "Notification email", status: "planned", desc: "Toggle par agence — email automatique à l'arrivée d'un nouveau lead." },
+  ]},
+  { section: "Types de leads", items: [
+    { name: "Acquéreurs", status: "proto", desc: "Budget, type de projet, secteur, horizon. 10 leads dummy avec données complètes et activité." },
+    { name: "Vendeurs", status: "proto", desc: "Surface, pièces, état, prix attendu, projet double. 2 leads dummy, même interface." },
+    { name: "Dual flag", status: "planned", desc: "Checkbox « Aussi vendeur ? » / « Aussi acheteur ? » dans le drawer." },
+    { name: "Création manuelle", status: "planned", desc: "Leads hors Meta — bouton + avec formulaire rapide + vue complète." },
+  ]},
+  { section: "Données & feedback", items: [
+    { name: "Base de données", status: "planned", desc: "Archive complète — Meta expire après 90 jours, notre outil conserve tout." },
+    { name: "Feedback loop", status: "planned", desc: "Raison quand Non qualifié ou Perdu. Données pour optimiser les campagnes." },
+    { name: "Export", status: "planned", desc: "CSV et Excel — données filtrées." },
+    { name: "Filtres avancés", status: "planned", desc: "Score, source, agent, vérifié, date, afficher les perdus — popover." },
+  ]},
+  { section: "Shell & navigation", items: [
+    { name: "Sidebar", status: "proto", desc: "260px, sticky, logo Magrey & Sons, sélecteur ville, navigation, dark mode, feedback card. Tablette 208px." },
+    { name: "Topbar", status: "proto", desc: "Sticky avec ombre au scroll, bouton +, cloche notifications, menu utilisateur. iOS safe-area pour PWA." },
+    { name: "Sélecteur d'agence", status: "proto", desc: "Agence + ville avec map-pin. Multi-ville pour les admins." },
+    { name: "Drawer", status: "proto", desc: "480px desktop, plein écran mobile. Header complet. 4 onglets, footer actions. Bodies = prochaine étape." },
+    { name: "Responsive", status: "proto", desc: "Mobile (<768px) : sidebar overlay, drawer plein écran, leads en cards avec badges d'activité. Tablette (<1024px) : sidebar 208px." },
+  ]},
+  { section: "Pages à venir", items: [
+    { name: "Tableau de bord", status: "planned", desc: "KPIs, graphiques, carte Paris (SVG prêt), sources, statuts, équipe." },
+    { name: "Page Agents", status: "planned", desc: "Cards agents avec métriques de performance." },
+    { name: "Page Campagnes", status: "planned", desc: "Liste campagnes Meta — statut, budget, leads, coût par lead." },
+    { name: "Database", status: "planned", desc: "Archive de tous les leads — recherche, filtres, export." },
+    { name: "Paramètres", status: "planned", desc: "Réglages agence, pipelines, notifications, intégrations." },
+  ]},
+  { section: "Infrastructure", items: [
+    { name: "Auth / Rôles", status: "planned", desc: "Manager Agence + Agent. Sessions Express + PostgreSQL. Admin Open House en Phase 4.", essential: true },
+    { name: "Multi-tenancy", status: "planned", desc: "agency_id sur chaque requête dès le départ. Couche admin Phase 4.", essential: true },
+    { name: "Meta — Webhooks", status: "planned", desc: "Réception leads en temps réel sur Hetzner CPX22." },
+    { name: "Meta — CAPI", status: "planned", desc: "Événements pipeline → Meta. Contact → Lead → Purchase." },
+  ]},
+];
+
+/* ═══ RENDER MODULES ═══ */
+function renderModules() {
+  var el = document.getElementById('moduleMap');
+  var html = '';
+  MODULES.forEach(function(section) {
+    html += '<div class="mod-section rv">';
+    html += '<div class="mod-section-label">' + section.section + '</div>';
+    html += '<div class="mod-grid">';
+    section.items.forEach(function(m) {
+      var cls = 'mod-card is-planned';
+      if (m.status === 'live') cls = 'mod-card';
+      else if (m.status === 'proto') cls = 'mod-card';
+      var badgeCls = m.status === 'live' ? 'mod-badge live' : m.status === 'proto' ? 'mod-badge proto' : 'mod-badge planned';
+      var badgeText = m.status === 'live' ? 'Live' : m.status === 'proto' ? 'Prototype' : 'Planifié';
+      if (section.future) {
+        badgeText = 'Module 2+';
+      }
+      var essentialBadge = m.essential ? '<span class="mod-essential"><svg viewBox="0 0 24 24" fill="#3878ff" stroke="none"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>Essentiel</span>' : '';
+      var futureBadge = section.future ? '<span class="mod-future-label">Futur</span>' : '';
+      html += '<div class="' + cls + '">';
+      html += '<div class="mod-card-top"><span class="mod-card-name">' + m.name + '</span>' + essentialBadge + futureBadge + '<span class="' + badgeCls + '">' + badgeText + '</span></div>';
+      html += '<p class="mod-card-desc">' + m.desc + '</p>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  el.innerHTML = html;
+  document.querySelectorAll('.mod-section.rv').forEach(function(el) { obs.observe(el); });
+}
+
+
+
+/* ═══ FLYING LOGO ═══ */
+var fLogo=document.getElementById('fLogo'),hGhost=document.getElementById('hGhost'),navAnchor=document.getElementById('navAnchor'),navEl=document.getElementById('nav');
+var hero={x:0,y:0,size:0,ls:-2},navPos={x:0,y:0,size:18,ls:-0.5},ready=false,SCROLL_START=100,SCROLL_END=300;
+function measure(){var s=window.scrollY,hr=hGhost.getBoundingClientRect();hero.x=hr.left;hero.y=hr.top+s;hero.size=parseFloat(getComputedStyle(hGhost).fontSize);fLogo.style.fontSize=hero.size+'px';fLogo.style.letterSpacing=hero.ls+'px';var heroW=fLogo.offsetWidth;var scaleRatio=navPos.size/hero.size;var navW=heroW*scaleRatio;var nr=navAnchor.getBoundingClientRect();navPos.x=nr.left+nr.width/2-navW/2;navPos.y=Math.round((64-navPos.size)/2);ready=true}
+function ease(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1}
+function renderLogo(){if(!ready){requestAnimationFrame(renderLogo);return}var s=window.scrollY,raw=Math.max(0,Math.min(1,(s-SCROLL_START)/(SCROLL_END-SCROLL_START))),t=ease(raw),r=navPos.size/hero.size,sc=1+(r-1)*t,hy=hero.y-s,x=hero.x+(navPos.x-hero.x)*t,y=hy+(navPos.y-hy)*t,ls=hero.ls+(navPos.ls-hero.ls)*t;if(raw>=1){x=navPos.x;y=navPos.y;sc=r;ls=navPos.ls}if(raw<=0){x=hero.x;y=hy;sc=1;ls=hero.ls}if(y<0)y=navPos.y;fLogo.style.transform='translate3d('+x.toFixed(1)+'px,'+y.toFixed(1)+'px,0) scale('+sc.toFixed(5)+')';fLogo.style.letterSpacing=ls.toFixed(2)+'px';if(raw>.05)navEl.classList.add('scrolled');else navEl.classList.remove('scrolled');requestAnimationFrame(renderLogo)}
+function initLogo(){measure();renderLogo()}
+window.addEventListener('resize',measure);
+var lastVH=window.innerHeight;setInterval(function(){if(window.innerHeight!==lastVH){lastVH=window.innerHeight;measure()}},300);
+document.fonts.ready.then(function(){setTimeout(initLogo,50)});if(document.readyState==='complete')initLogo();else window.addEventListener('load',initLogo);
+
+/* ═══ MOBILE NAV ═══ */
+var navMenu=document.getElementById('nLM'),navPill=document.getElementById('navPill');
+var chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+function scramble(el,final,dur){var len=final.length,t0s=performance.now();function step(now){var t=Math.min(1,(now-t0s)/dur),r='';for(var i=0;i<len;i++)r+=t>((i+1)/len)*.7?final[i]:chars[Math.floor(Math.random()*chars.length)];el.textContent=r;if(t<1)requestAnimationFrame(step);else el.textContent=final}requestAnimationFrame(step)}
+function openMobileNav(){navMenu.classList.add('op');navMenu.classList.remove('frosted');navPill.classList.add('active');var links=navMenu.querySelectorAll('a'),total=links.length*60+400;links.forEach(function(a,i){setTimeout(function(){scramble(a,a.getAttribute('data-text'),400)},i*60)});setTimeout(function(){navMenu.classList.add('frosted')},total)}
+function closeMobileNav(){navMenu.classList.remove('op','frosted');navPill.classList.remove('active')}
+function toggleMobileNav(){navMenu.classList.contains('op')?closeMobileNav():openMobileNav()}
+navPill.addEventListener('click',toggleMobileNav);
+document.querySelectorAll('.nl-mobile a,.nav-left a,.nav-right a').forEach(function(a){a.addEventListener('click',closeMobileNav)});
+window.addEventListener('resize',function(){if(innerWidth>960)closeMobileNav()});
+
+/* ═══ PARTICLES ═══ */
+var c=document.getElementById('P'),ctx=c.getContext('2d'),pts=[],mx={x:-1e3,y:-1e3},WW,HH;
+function rs(){WW=c.width=innerWidth;HH=c.height=innerHeight}rs();addEventListener('resize',rs);
+document.addEventListener('mousemove',function(e){mx.x=e.clientX;mx.y=e.clientY});
+var cx=WW/2,cy=HH/2,t0=performance.now();
+function Pt(){this.tx=Math.random()*WW;this.ty=Math.random()*HH;this.x=cx;this.y=cy;this.delay=Math.random()*300;var a=Math.random()*Math.PI*2,f=5+Math.random()*10;this.vx=Math.cos(a)*f;this.vy=Math.sin(a)*f;this.r=Math.random()*1.5+.5;this.a=Math.random()*.25+.04;this.born=false;this.s=false;this.trail=[]}
+Pt.prototype.u=function(){var elapsed=performance.now()-t0;if(!this.born){if(elapsed>this.delay)this.born=true;else return}if(!this.s){this.vx*=.96;this.vy*=.96;this.x+=this.vx;this.y+=this.vy;this.trail.push({x:this.x,y:this.y});if(this.trail.length>8)this.trail.shift();if(elapsed>600){this.x+=(this.tx-this.x)*.04;this.y+=(this.ty-this.y)*.04}var dx=this.x-this.tx,dy=this.y-this.ty;if(Math.abs(this.vx)<.15&&Math.abs(this.vy)<.15&&Math.sqrt(dx*dx+dy*dy)<3){this.s=true;this.x=this.tx;this.y=this.ty;this.vx=(Math.random()-.5)*.3;this.vy=(Math.random()-.5)*.3;this.trail=[]}}else{this.x+=this.vx;this.y+=this.vy;var dx=this.x-mx.x,dy=this.y-mx.y,d=Math.sqrt(dx*dx+dy*dy);if(d<120){var f=(120-d)/120*.8;this.vx+=dx/d*f;this.vy+=dy/d*f}this.vx*=.98;this.vy*=.98;if(this.x<-10)this.x=WW+10;if(this.x>WW+10)this.x=-10;if(this.y<-10)this.y=HH+10;if(this.y>HH+10)this.y=-10}};
+Pt.prototype.d=function(){if(!this.born)return;if(!this.s&&this.trail.length>1){for(var i=1;i<this.trail.length;i++){ctx.beginPath();ctx.moveTo(this.trail[i-1].x,this.trail[i-1].y);ctx.lineTo(this.trail[i].x,this.trail[i].y);ctx.strokeStyle='rgba(0,255,170,'+(i/this.trail.length*.15)+')';ctx.lineWidth=.5;ctx.stroke()}}ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle='rgba(0,255,170,'+this.a+')';ctx.fill()};
+var cnt=Math.min(Math.floor(WW*HH/10000),140);
+function dl(){for(var i=0;i<pts.length;i++){if(!pts[i].s)continue;for(var j=i+1;j<pts.length;j++){if(!pts[j].s)continue;var dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<100){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle='rgba(0,255,170,'+(0.12*(1-d/100))+')';ctx.lineWidth=.5;ctx.stroke()}}}}
+function an(){ctx.clearRect(0,0,WW,HH);for(var i=0;i<pts.length;i++){pts[i].u();pts[i].d()}dl();requestAnimationFrame(an)}
+function startMainParticles(){t0=performance.now();for(var i=0;i<cnt;i++)pts.push(new Pt());an()}
+
+/* ═══ REVEALS ═══ */
+var obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vi');e.target.classList.add('vis')}})},{threshold:.12});
+document.querySelectorAll('.rv,.rv-stagger,.fly-in,.fly-steps,section').forEach(function(el){obs.observe(el)});
+document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();closeMobileNav();var t=document.querySelector(a.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth'})})});
+
+/* ═══ PROXIMITY LIGHT ═══ */
+var fbBox=document.getElementById('fbBox');
+if(fbBox){fbBox.addEventListener('mousemove',function(e){var r=fbBox.getBoundingClientRect();fbBox.style.setProperty('--px',(e.clientX-r.left)+'px');fbBox.style.setProperty('--py',(e.clientY-r.top)+'px')});}
+
+/* ═══ INIT MODULES ═══ */
+renderModules();
+
+/* ═══ FEEDBACK SYSTEM — LOCKED ═══ */
+/* Feedback form, feed, CSV loading, and submit functions are disabled
+   until the first shell design is delivered. All code will be restored
+   when the Google Sheet is connected. */
+
+/* ═══ CHANGELOG MORE/LESS ═══ */
+var clExpanded = false;
+function toggleOlderChangelog() {
+  var older = document.getElementById('clOlder');
+  var txt = document.getElementById('clMoreTxt');
+  var line = document.getElementById('clMoreLine');
+  clExpanded = !clExpanded;
+  if (clExpanded) {
+    older.style.display = '';
+    txt.textContent = 'Less';
+    line.style.transform = 'rotate(180deg)';
+  } else {
+    older.style.display = 'none';
+    txt.textContent = 'More';
+    line.style.transform = '';
+  }
+}
+
+/* ═══ LOGIN GATE ═══ */
+var PW='leadsreport';
+var pwUnlocked=sessionStorage.getItem('oh_pw_ok')==='1';
+if(pwUnlocked){document.getElementById('pwGate').style.display='none';document.body.style.overflow='auto';document.body.style.animation='pageIn 1s ease .2s forwards';startMainParticles()}
+else{
+  var pc=document.getElementById('pwParticles'),pctx=pc.getContext('2d'),ppts=[],pmx={x:-1e3,y:-1e3},pWW,pHH;
+  function prs(){pWW=pc.width=innerWidth;pHH=pc.height=innerHeight}prs();addEventListener('resize',prs);
+  document.addEventListener('mousemove',function(e){pmx.x=e.clientX;pmx.y=e.clientY});
+  var pcx=pWW/2,pcy=pHH/2,pt0=performance.now();
+  function PPt(){this.tx=Math.random()*pWW;this.ty=Math.random()*pHH;this.x=pcx;this.y=pcy;this.delay=Math.random()*300;var a=Math.random()*Math.PI*2,f=5+Math.random()*10;this.vx=Math.cos(a)*f;this.vy=Math.sin(a)*f;this.r=Math.random()*1.5+.5;this.a=Math.random()*.25+.04;this.born=false;this.s=false;this.trail=[]}
+  PPt.prototype.u=function(){var elapsed=performance.now()-pt0;if(!this.born){if(elapsed>this.delay)this.born=true;else return}if(!this.s){this.vx*=.96;this.vy*=.96;this.x+=this.vx;this.y+=this.vy;this.trail.push({x:this.x,y:this.y});if(this.trail.length>8)this.trail.shift();if(elapsed>600){this.x+=(this.tx-this.x)*.04;this.y+=(this.ty-this.y)*.04}var dx=this.x-this.tx,dy=this.y-this.ty;if(Math.abs(this.vx)<.15&&Math.abs(this.vy)<.15&&Math.sqrt(dx*dx+dy*dy)<3){this.s=true;this.x=this.tx;this.y=this.ty;this.vx=(Math.random()-.5)*.3;this.vy=(Math.random()-.5)*.3;this.trail=[]}}else{this.x+=this.vx;this.y+=this.vy;var dx=this.x-pmx.x,dy=this.y-pmx.y,d=Math.sqrt(dx*dx+dy*dy);if(d<120){var f=(120-d)/120*.8;this.vx+=dx/d*f;this.vy+=dy/d*f}this.vx*=.98;this.vy*=.98;if(this.x<-10)this.x=pWW+10;if(this.x>pWW+10)this.x=-10;if(this.y<-10)this.y=pHH+10;if(this.y>pHH+10)this.y=-10}};
+  PPt.prototype.d=function(){if(!this.born)return;if(!this.s&&this.trail.length>1){for(var i=1;i<this.trail.length;i++){pctx.beginPath();pctx.moveTo(this.trail[i-1].x,this.trail[i-1].y);pctx.lineTo(this.trail[i].x,this.trail[i].y);pctx.strokeStyle='rgba(0,255,170,'+(i/this.trail.length*.15)+')';pctx.lineWidth=.5;pctx.stroke()}}pctx.beginPath();pctx.arc(this.x,this.y,this.r,0,Math.PI*2);pctx.fillStyle='rgba(0,255,170,'+this.a+')';pctx.fill()};
+  var pcnt=Math.min(Math.floor(pWW*pHH/12000),100);for(var i=0;i<pcnt;i++)ppts.push(new PPt());
+  function pdl(){for(var i=0;i<ppts.length;i++){if(!ppts[i].s)continue;for(var j=i+1;j<ppts.length;j++){if(!ppts[j].s)continue;var dx=ppts[i].x-ppts[j].x,dy=ppts[i].y-ppts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<100){pctx.beginPath();pctx.moveTo(ppts[i].x,ppts[i].y);pctx.lineTo(ppts[j].x,ppts[j].y);pctx.strokeStyle='rgba(0,255,170,'+(0.12*(1-d/100))+')';pctx.lineWidth=.5;pctx.stroke()}}}}
+  var pwAnimId;function pan(){pctx.clearRect(0,0,pWW,pHH);for(var i=0;i<ppts.length;i++){ppts[i].u();ppts[i].d()}pdl();pwAnimId=requestAnimationFrame(pan)}pan();
+}
+
+function pwDots(val){
+  var d=document.getElementById('pwDisplay');
+  d.className=val.length?'pw-dots':'pw-placeholder';
+  d.textContent=val.length?'\u25CF'.repeat(val.length):'Mot de passe';
+}
+
+function pwCheck(){
+  var val=document.getElementById('pwInput').value.trim();
+  var error=document.getElementById('pwError');
+  if(!val)return;
+  if(val===PW){
+    sessionStorage.setItem('oh_pw_ok','1');
+    var gate=document.getElementById('pwGate');
+    gate.style.opacity='0';
+    if(typeof pwAnimId!=='undefined')cancelAnimationFrame(pwAnimId);
+    document.body.style.overflow='auto';document.body.style.animation='pageIn 1s ease .2s forwards';startMainParticles();setTimeout(function(){gate.style.display='none';measure()},400);
+  } else {
+    error.textContent='Mot de passe incorrect';
+    document.getElementById('pwInput').value='';
+    pwDots('');
+    var modal=document.getElementById('pwModal');
+    modal.style.animation='none';
+    void modal.offsetHeight;
+    modal.style.animation='pwShake .4s ease';
+    document.getElementById('pwField').style.borderColor='rgba(255,77,77,.4)';
+    setTimeout(function(){
+      error.textContent='';
+      document.getElementById('pwField').style.borderColor='';
+    },2000);
+  }
+}
+</script>
+</body>
+</html>
